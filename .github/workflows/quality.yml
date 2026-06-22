@@ -1,0 +1,35 @@
+name: Qualidade
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Roda na nuvem do GitHub (grátis para repositório público).
+jobs:
+  links:
+    name: Verificar links quebrados
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lychee link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --accept 200,206,429 "docs/**/*.html"
+          fail: false
+
+  lighthouse:
+    name: Lighthouse (performance/SEO/acessibilidade)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Auditar páginas ao vivo
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://willahc.github.io/WiNS-Hub-Sa-de/
+            https://willahc.github.io/WiNS-Hub-Sa-de/oportunidade.html
+            https://willahc.github.io/WiNS-Hub-Sa-de/mapa.html
+            https://willahc.github.io/WiNS-Hub-Sa-de/vender.html
+          uploadArtifacts: true
+          temporaryPublicStorage: true

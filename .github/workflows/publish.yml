@@ -1,0 +1,41 @@
+name: Publicar site (self-hosted)
+
+# Regenera o site a partir do PostgreSQL LOCAL e publica.
+# Roda num runner self-hosted (sua máquina) porque a nuvem não acessa o banco local.
+# Acionável manualmente (Actions > Run workflow) ou agendado (segunda 09:00 UTC).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recriar .env.saude a partir dos secrets
+        shell: powershell
+        run: |
+          "DATABASE_URL=${{ secrets.DATABASE_URL }}"     | Set-Content -Encoding ascii .env.saude
+          "SUPERUSER_URL=${{ secrets.SUPERUSER_URL }}"   | Add-Content -Encoding ascii .env.saude
+          "RFB_SHARE_TOKEN=${{ secrets.RFB_SHARE_TOKEN }}" | Add-Content -Encoding ascii .env.saude
+          "RFB_YM=2026-06"                               | Add-Content -Encoding ascii .env.saude
+
+      - name: Instalar dependências
+        shell: powershell
+        run: python -m pip install --quiet flask psycopg2-binary python-dotenv minify-html
+
+      - name: Regenerar e publicar
+        shell: powershell
+        run: |
+          python wins_hub_saude_dashboard.py
+          python wins_hub_saude_static_site.py
+          git config user.name "wins-bot"
+          git config user.email "williamvnvn@gmail.com"
+          git add -A
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) { git commit -m "Atualiza site (automatico)"; git push } else { Write-Host "Sem mudancas." }

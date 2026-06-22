@@ -22,6 +22,7 @@ import os
 import json
 import shutil
 import urllib.request
+from datetime import date
 from decimal import Decimal
 
 from dotenv import load_dotenv
@@ -39,6 +40,21 @@ PUBLICO = os.path.join(BASE_DIR, "wins_hub_saude_dashboard_publico.html")
 LOGO_SRC = r"C:\Users\kbadmin\Documents\Projetos\WiNS Hub\anexos\LOGO_WINS HUB.png"
 SITE_URL = "https://willahc.github.io/WiNS-Hub-Sa-de/"
 os.makedirs(DOCS, exist_ok=True)
+
+# Minificacao de HTML (opcional). minify_js=False por seguranca (nao toca na
+# logica dos scripts inline); colapsa whitespace/comentarios e CSS inline.
+try:
+    import minify_html as _mh
+
+    def minify(html):
+        try:
+            return _mh.minify(html, minify_css=True, minify_js=False,
+                              do_not_minify_doctype=True, keep_closing_tags=True)
+        except Exception:
+            return html
+except ImportError:
+    def minify(html):
+        return html
 
 # Navegacao com links RELATIVOS (no Pages o site fica sob /WiNS-Hub-Sa-de/)
 NAV = """
@@ -133,7 +149,7 @@ def gerar_index():
     html = html.replace("<body>", "<body>" + NAV, 1)
     html = inject_head(html, "Dashboard", "index.html")
     with open(os.path.join(DOCS, "index.html"), "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(minify(html))
     print(f"  index.html: {len(html)/1024:.0f} KB (dashboard + nav)")
 
 
@@ -267,7 +283,7 @@ def gerar_oportunidade():
     html = OPORT_PAGE.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
     html = inject_head(html, "Indice de Oportunidade", "oportunidade.html")
     with open(os.path.join(DOCS, "oportunidade.html"), "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(minify(html))
     print(f"  oportunidade.html: {len(html)/1024:.0f} KB (Tabulator+Chart.js+Fuse+jsPDF)")
 
 
@@ -275,7 +291,7 @@ def gerar_vender():
     html = render("Para quem vender", vender_body())
     html = inject_head(html, "Para quem vender", "vender.html")
     with open(os.path.join(DOCS, "vender.html"), "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(minify(html))
     print(f"  vender.html: {len(html)/1024:.0f} KB")
 
 
@@ -397,8 +413,39 @@ def gerar_mapa():
     html = MAPA_PAGE.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
     html = inject_head(html, "Mapa de Oportunidade", "mapa.html")
     with open(os.path.join(DOCS, "mapa.html"), "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(minify(html))
     print(f"  mapa.html: {len(html)/1024:.0f} KB (Leaflet coropletico)")
+
+
+PAGINAS = ["index.html", "oportunidade.html", "mapa.html", "vender.html"]
+
+
+def gerar_seo():
+    hoje = date.today().isoformat()
+    # robots.txt
+    with open(os.path.join(DOCS, "robots.txt"), "w", encoding="utf-8") as f:
+        f.write(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n")
+    # sitemap.xml
+    urls = "".join(
+        f"  <url><loc>{SITE_URL}{p}</loc><lastmod>{hoje}</lastmod></url>\n"
+        for p in PAGINAS)
+    with open(os.path.join(DOCS, "sitemap.xml"), "w", encoding="utf-8") as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                f"{urls}</urlset>\n")
+    # .nojekyll (evita processamento Jekyll no Pages)
+    open(os.path.join(DOCS, ".nojekyll"), "w").close()
+    # 404 custom
+    p404 = ("""<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
+<title>404 - WiNS Hub Saude</title><link rel="icon" href="wins-logo.png">
+<style>{{style}}</style></head><body>{{nav}}
+<div class=wrap style="text-align:center;padding-top:60px">
+<h1>404</h1><p class=sub>Pagina nao encontrada.</p>
+<p><a href="index.html">Voltar ao Dashboard</a></p></div></body></html>""")
+    p404 = p404.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
+    with open(os.path.join(DOCS, "404.html"), "w", encoding="utf-8") as f:
+        f.write(minify(p404))
+    print("  seo: robots.txt, sitemap.xml, 404.html, .nojekyll")
 
 
 if __name__ == "__main__":
@@ -410,4 +457,5 @@ if __name__ == "__main__":
     gerar_oportunidade()
     gerar_mapa()
     gerar_vender()
+    gerar_seo()
     print("OK. Publique com: git add -A && git commit -m 'site' && git push")
