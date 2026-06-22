@@ -1,0 +1,119 @@
+<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<title>Mapa de Oportunidade - WiNS Hub Saude</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+
+:root{--bg:#0b1220;--card:#131c30;--card2:#1a2740;--txt:#e6edf7;--mut:#8aa0c0;--acc:#37d7a6;--acc2:#4f9cf9;--bd:#22304d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:24px;margin:6px 0 4px}h2{color:var(--acc);font-size:16px;border-left:3px solid var(--acc);padding-left:10px;margin:28px 0 12px}
+.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+select,input{background:var(--card2);border:1px solid var(--bd);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px}
+button{background:var(--acc2);border:0;color:#06101f;border-radius:8px;padding:9px 16px;font:600 14px sans-serif;cursor:pointer}
+button.alt{background:var(--card2);color:var(--txt);border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd)}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;cursor:pointer;user-select:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.tier-ALTA{color:#37d7a6;font-weight:700}.tier-MEDIA{color:#f6c453}.tier-BAIXA{color:#8aa0c0}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.alvo{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.alvo.ok{border-color:var(--acc);background:linear-gradient(180deg,#10231c,#131c30)}
+.alvo h4{margin:0 0 4px;font-size:15px}.alvo .ex{color:var(--acc2);font-size:13px}.alvo .uso{color:var(--mut);font-size:13px;margin-top:4px}
+.chk{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:13px;color:var(--mut);cursor:pointer}
+.pill{display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--mut);margin-right:6px}
+a{color:var(--acc2)}
+
+#map{height:72vh;border-radius:10px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;color:var(--mut);font-size:13px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.leaflet-popup-content{font:13px sans-serif}
+button.on{outline:2px solid var(--acc)}
+</style><link rel="icon" href="wins-logo.png">
+<meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mapa de Oportunidade - WiNS Hub Saude">
+<meta property="og:description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:image" content="https://willahc.github.io/WiNS-Hub-Sa-de/wins-logo.png">
+<meta property="og:url" content="https://willahc.github.io/WiNS-Hub-Sa-de/mapa.html">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Analytics: crie conta gratis em https://www.goatcounter.com e troque SEUCODIGO; depois descomente:
+<script data-goatcounter="https://SEUCODIGO.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+-->
+</head><body>
+<nav style="position:sticky;top:0;z-index:9999;background:#0a0f1a;border-bottom:1px solid #22304d;
+            padding:11px 22px;display:flex;gap:6px;align-items:center;font:600 14px sans-serif">
+  <span style="color:#37d7a6;margin-right:18px">WiNS Hub Saude</span>
+  <a href="index.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Dashboard</a>
+  <a href="oportunidade.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Indice de Oportunidade</a>
+  <a href="mapa.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Mapa</a>
+  <a href="vender.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Para quem vender</a>
+</nav>
+
+<div class=wrap>
+<h1>Mapa de Oportunidade por Municipio</h1>
+<p class=sub>Cada municipio pintado pelo indice de oportunidade. Malha IBGE x snapshot agregado (sem PII).</p>
+<div class=toolbar>
+  <button id=bTier class=on onclick="setMode('tier')">Colorir por tier</button>
+  <button id=bIdx class=alt onclick="setMode('index')">Colorir por indice</button>
+  <span class=pill id=info>Carregando mapa...</span>
+</div>
+<div class=card><div id=map></div>
+  <div class=legend id=legend></div>
+</div>
+</div>
+<script>
+const TIERCOL={ALTA:'#37d7a6',MEDIA:'#f6c453',BAIXA:'#8aa0c0'};
+const SEMDADO='#243049';
+const fmt=n=>n==null?'-':Number(n).toLocaleString('pt-BR');
+function idxColor(v){ // gradiente cinza->verde 0..100
+  if(v==null)return SEMDADO;
+  const t=Math.max(0,Math.min(100,v))/100;
+  const r=Math.round(74+(55-74)*t), g=Math.round(90+(215-90)*t), b=Math.round(120+(166-120)*t);
+  return `rgb(${r},${g},${b})`;
+}
+let DMAP=new Map(), layer=null, mode='tier', map;
+function styleFor(props){
+  const rec=DMAP.get(props.cod);
+  const fill = !rec ? SEMDADO : (mode==='tier'? (TIERCOL[rec.tier]||SEMDADO) : idxColor(rec.indice_oportunidade));
+  return {fillColor:fill,weight:.3,color:'#0b1220',fillOpacity:rec?0.78:0.25};
+}
+function popupFor(props){
+  const r=DMAP.get(props.cod);
+  if(!r)return `<b>Municipio ${props.cod}</b><br>sem dado`;
+  return `<b>${r.municipio_nome}-${r.uf}</b><br>Indice: <b>${r.indice_oportunidade}</b> (${r.tier})${r.sweet_spot?' &#9733;':''}`+
+         `<br>Pop: ${fmt(r.populacao)}<br>Medicos: ${r.medicos_por_mil}/mil<br>Cobertura privada: ${r.cobertura_privada_pct}%`;
+}
+function setMode(m){
+  mode=m;
+  document.getElementById('bTier').className=m==='tier'?'on':'alt';
+  document.getElementById('bIdx').className=m==='index'?'on':'alt';
+  if(layer)layer.setStyle(f=>styleFor(f.properties));
+  legend();
+}
+function legend(){
+  const el=document.getElementById('legend');
+  if(mode==='tier'){
+    el.innerHTML=Object.entries(TIERCOL).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join('')+`<span><i style="background:${SEMDADO}"></i>sem dado</span>`;
+  } else {
+    el.innerHTML=[0,25,50,75,100].map(v=>`<span><i style="background:${idxColor(v)}"></i>${v}</span>`).join('')+'  (indice 0-100)';
+  }
+}
+map=L.map('map',{preferCanvas:true,scrollWheelZoom:false}).setView([-15,-53],4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:12}).addTo(map);
+Promise.all([
+  fetch('oportunidade.json').then(r=>r.json()),
+  fetch('municipios_br.geojson').then(r=>r.json())
+]).then(([dados,geo])=>{
+  dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+  layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),
+    onEachFeature:(f,l)=>l.bindPopup(()=>popupFor(f.properties))}).addTo(map);
+  document.getElementById('info').textContent=DMAP.size+' municipios com dado';
+  legend();
+}).catch(e=>{document.getElementById('info').textContent='Falha ao carregar mapa: '+e;});
+</script>
+</body></html>

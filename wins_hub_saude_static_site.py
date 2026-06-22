@@ -21,6 +21,7 @@ Depois: git add -A && git commit -m "atualiza site" && git push
 import os
 import json
 import shutil
+import urllib.request
 from decimal import Decimal
 
 from dotenv import load_dotenv
@@ -46,6 +47,7 @@ NAV = """
   <span style="color:#37d7a6;margin-right:18px">WiNS Hub Saude</span>
   <a href="index.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Dashboard</a>
   <a href="oportunidade.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Indice de Oportunidade</a>
+  <a href="mapa.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Mapa</a>
   <a href="vender.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Para quem vender</a>
 </nav>
 """
@@ -277,11 +279,135 @@ def gerar_vender():
     print(f"  vender.html: {len(html)/1024:.0f} KB")
 
 
+MALHA_URL = ("https://servicodados.ibge.gov.br/api/v4/malhas/paises/BR"
+             "?intrarregiao=municipio&qualidade=minima&formato=application/vnd.geo+json")
+MALHA_FILE = os.path.join(DOCS, "municipios_br.geojson")
+
+
+def _round_coords(obj, nd=3):
+    if isinstance(obj, list):
+        if obj and isinstance(obj[0], (int, float)):
+            return [round(float(obj[0]), nd), round(float(obj[1]), nd)]
+        return [_round_coords(x, nd) for x in obj]
+    return obj
+
+
+def gerar_malha(force=False):
+    """Baixa a malha municipal do IBGE (qualidade minima) e simplifica as
+    coordenadas (3 casas ~ 100m) p/ aliviar o payload. Cacheia por existencia."""
+    if os.path.exists(MALHA_FILE) and not force:
+        print(f"  municipios_br.geojson: ja existe ({os.path.getsize(MALHA_FILE)/1024/1024:.1f} MB)")
+        return
+    req = urllib.request.Request(MALHA_URL, headers={"User-Agent": "wins-hub"})
+    data = urllib.request.urlopen(req, timeout=180).read()
+    if data[:2] == b"\x1f\x8b":  # resposta gzipada
+        import gzip
+        data = gzip.decompress(data)
+    g = json.loads(data)
+    for f in g["features"]:
+        f["properties"] = {"cod": str(f["properties"].get("codarea", ""))[:6]}  # 6 digitos p/ casar c/ os dados
+        f["geometry"]["coordinates"] = _round_coords(f["geometry"]["coordinates"])
+    with open(MALHA_FILE, "w", encoding="utf-8") as fh:
+        json.dump(g, fh, separators=(",", ":"))
+    print(f"  municipios_br.geojson: {len(g['features'])} munic ({os.path.getsize(MALHA_FILE)/1024/1024:.1f} MB)")
+
+
+# Pagina do MAPA COROPLETICO: Leaflet pinta cada municipio por tier/indice,
+# casando a malha do IBGE (por codigo) com oportunidade.json. Renderer canvas.
+MAPA_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<title>Mapa de Oportunidade - WiNS Hub Saude</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+{{style}}
+#map{height:72vh;border-radius:10px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;color:var(--mut);font-size:13px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+.leaflet-popup-content{font:13px sans-serif}
+button.on{outline:2px solid var(--acc)}
+</style></head><body>{{nav}}
+<div class=wrap>
+<h1>Mapa de Oportunidade por Municipio</h1>
+<p class=sub>Cada municipio pintado pelo indice de oportunidade. Malha IBGE x snapshot agregado (sem PII).</p>
+<div class=toolbar>
+  <button id=bTier class=on onclick="setMode('tier')">Colorir por tier</button>
+  <button id=bIdx class=alt onclick="setMode('index')">Colorir por indice</button>
+  <span class=pill id=info>Carregando mapa...</span>
+</div>
+<div class=card><div id=map></div>
+  <div class=legend id=legend></div>
+</div>
+</div>
+<script>
+const TIERCOL={ALTA:'#37d7a6',MEDIA:'#f6c453',BAIXA:'#8aa0c0'};
+const SEMDADO='#243049';
+const fmt=n=>n==null?'-':Number(n).toLocaleString('pt-BR');
+function idxColor(v){ // gradiente cinza->verde 0..100
+  if(v==null)return SEMDADO;
+  const t=Math.max(0,Math.min(100,v))/100;
+  const r=Math.round(74+(55-74)*t), g=Math.round(90+(215-90)*t), b=Math.round(120+(166-120)*t);
+  return `rgb(${r},${g},${b})`;
+}
+let DMAP=new Map(), layer=null, mode='tier', map;
+function styleFor(props){
+  const rec=DMAP.get(props.cod);
+  const fill = !rec ? SEMDADO : (mode==='tier'? (TIERCOL[rec.tier]||SEMDADO) : idxColor(rec.indice_oportunidade));
+  return {fillColor:fill,weight:.3,color:'#0b1220',fillOpacity:rec?0.78:0.25};
+}
+function popupFor(props){
+  const r=DMAP.get(props.cod);
+  if(!r)return `<b>Municipio ${props.cod}</b><br>sem dado`;
+  return `<b>${r.municipio_nome}-${r.uf}</b><br>Indice: <b>${r.indice_oportunidade}</b> (${r.tier})${r.sweet_spot?' &#9733;':''}`+
+         `<br>Pop: ${fmt(r.populacao)}<br>Medicos: ${r.medicos_por_mil}/mil<br>Cobertura privada: ${r.cobertura_privada_pct}%`;
+}
+function setMode(m){
+  mode=m;
+  document.getElementById('bTier').className=m==='tier'?'on':'alt';
+  document.getElementById('bIdx').className=m==='index'?'on':'alt';
+  if(layer)layer.setStyle(f=>styleFor(f.properties));
+  legend();
+}
+function legend(){
+  const el=document.getElementById('legend');
+  if(mode==='tier'){
+    el.innerHTML=Object.entries(TIERCOL).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join('')+`<span><i style="background:${SEMDADO}"></i>sem dado</span>`;
+  } else {
+    el.innerHTML=[0,25,50,75,100].map(v=>`<span><i style="background:${idxColor(v)}"></i>${v}</span>`).join('')+'  (indice 0-100)';
+  }
+}
+map=L.map('map',{preferCanvas:true,scrollWheelZoom:false}).setView([-15,-53],4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:12}).addTo(map);
+Promise.all([
+  fetch('oportunidade.json').then(r=>r.json()),
+  fetch('municipios_br.geojson').then(r=>r.json())
+]).then(([dados,geo])=>{
+  dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+  layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),
+    onEachFeature:(f,l)=>l.bindPopup(()=>popupFor(f.properties))}).addTo(map);
+  document.getElementById('info').textContent=DMAP.size+' municipios com dado';
+  legend();
+}).catch(e=>{document.getElementById('info').textContent='Falha ao carregar mapa: '+e;});
+</script>
+</body></html>"""
+
+
+def gerar_mapa():
+    html = MAPA_PAGE.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
+    html = inject_head(html, "Mapa de Oportunidade", "mapa.html")
+    with open(os.path.join(DOCS, "mapa.html"), "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"  mapa.html: {len(html)/1024:.0f} KB (Leaflet coropletico)")
+
+
 if __name__ == "__main__":
     print("Gerando site estatico em docs/ ...")
     gerar_assets()
+    gerar_malha()
     gerar_dados()
     gerar_index()
     gerar_oportunidade()
+    gerar_mapa()
     gerar_vender()
     print("OK. Publique com: git add -A && git commit -m 'site' && git push")
