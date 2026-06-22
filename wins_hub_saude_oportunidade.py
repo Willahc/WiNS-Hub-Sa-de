@@ -78,7 +78,7 @@ pr AS (
 sc AS (
   SELECT *,
     round(((d_med + d_enf + d_diag)/3.0*100)::numeric,1)              AS score_carencia,
-    round(((0.5*r_sih + 0.3*r_pop + 0.2*r_idoso)*100)::numeric,1)     AS score_demanda,
+    round(((0.7*r_sih + 0.2*r_pop + 0.1*r_idoso)*100)::numeric,1)     AS score_demanda,
     round(((0.6*r_pib + 0.4*r_cob)*100)::numeric,1)                   AS score_mercado
   FROM pr
 ),
