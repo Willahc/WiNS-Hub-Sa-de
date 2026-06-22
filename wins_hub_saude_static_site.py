@@ -76,11 +76,8 @@ COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
 STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
 
-# Analytics opcional (GoatCounter, gratis). Crie conta em goatcounter.com,
-# troque SEUCODIGO e descomente para ativar.
-ANALYTICS = """<!-- Analytics: crie conta gratis em https://www.goatcounter.com e troque SEUCODIGO; depois descomente:
-<script data-goatcounter="https://SEUCODIGO.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
--->"""
+# Analytics GoatCounter (gratis) - ativo.
+ANALYTICS = """<script data-goatcounter="https://william.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>"""
 
 OG_DESC = ("Inteligencia territorial de saude no Brasil: indice de oportunidade por "
            "municipio, carencia assistencial, mercado pagante e infraestrutura.")
