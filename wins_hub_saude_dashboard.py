@@ -203,6 +203,9 @@ HTML = """<!DOCTYPE html>
 <title>WiNS Hub Saude - Dashboard</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0b1220;--card:#131c30;--card2:#1a2740;--txt:#e6edf7;--mut:#8aa0c0;--acc:#37d7a6;--acc2:#4f9cf9;--red:#ef5f5f;--orange:#f6a443;--bd:#22304d}
@@ -313,7 +316,7 @@ const DESCFG={
 };
 const map=L.map('map',{scrollWheelZoom:false,preferCanvas:true}).setView([-9,-53],4);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:12}).addTo(map);
-const desLayer=L.layerGroup().addTo(map);
+const desLayer=L.markerClusterGroup({chunkedLoading:true,maxClusterRadius:50,spiderfyOnMaxZoom:true,disableClusteringAtZoom:9}).addTo(map);
 function renderDesertos(tipo){
   const cfg=DESCFG[tipo];
   desLayer.clearLayers();
