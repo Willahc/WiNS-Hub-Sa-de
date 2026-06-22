@@ -439,7 +439,7 @@ def gerar_seo():
 <div class=wrap style="text-align:center;padding-top:60px">
 <h1>404</h1><p class=sub>Pagina nao encontrada.</p>
 <p><a href="index.html">Voltar ao Dashboard</a></p></div></body></html>""")
-    p404 = p404.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
+    p404 = p404.replace("{{nav}}", NAV).replace("{{style}}", STYLE).replace("</head>", ANALYTICS + "</head>")
     with open(os.path.join(DOCS, "404.html"), "w", encoding="utf-8") as f:
         f.write(minify(p404))
     print("  seo: robots.txt, sitemap.xml, 404.html, .nojekyll")
