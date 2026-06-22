@@ -5,6 +5,9 @@
 <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
 
 :root{--bg:#0b1220;--card:#131c30;--card2:#1a2740;--txt:#e6edf7;--mut:#8aa0c0;--acc:#37d7a6;--acc2:#4f9cf9;--bd:#22304d}
@@ -29,8 +32,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--mut);margin-right:6px}
 a{color:var(--acc2)}
 
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:880px){.charts{grid-template-columns:1fr}}
+.charts{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;margin-bottom:14px}
+@media(max-width:980px){.charts{grid-template-columns:1fr}}
 .chartbox{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
 .chartbox h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .chartbox canvas{max-height:240px}
@@ -39,7 +42,18 @@ a{color:var(--acc2)}
 .kpi-mini{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
 .kpi-mini .v{font-size:20px;font-weight:700}.kpi-mini .l{color:var(--mut);font-size:12px}
 .tabulator{background:var(--card);border:1px solid var(--bd);border-radius:12px;font-size:13px}
-</style></head><body>
+</style><link rel="icon" href="wins-logo.png">
+<meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Indice de Oportunidade - WiNS Hub Saude">
+<meta property="og:description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:image" content="https://willahc.github.io/WiNS-Hub-Sa-de/wins-logo.png">
+<meta property="og:url" content="https://willahc.github.io/WiNS-Hub-Sa-de/oportunidade.html">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Analytics: crie conta gratis em https://www.goatcounter.com e troque SEUCODIGO; depois descomente:
+<script data-goatcounter="https://SEUCODIGO.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+-->
+</head><body>
 <nav style="position:sticky;top:0;z-index:9999;background:#0a0f1a;border-bottom:1px solid #22304d;
             padding:11px 22px;display:flex;gap:6px;align-items:center;font:600 14px sans-serif">
   <span style="color:#37d7a6;margin-right:18px">WiNS Hub Saude</span>
@@ -55,11 +69,13 @@ a{color:var(--acc2)}
 <div class=charts>
   <div class=chartbox><h3>Municipios por tier</h3><canvas id=chTier></canvas></div>
   <div class=chartbox><h3>Top 12 UFs por sweet spots</h3><canvas id=chUf></canvas></div>
+  <div class=chartbox><h3>Carencia medica x mercado pagante</h3><canvas id=chScatter></canvas></div>
 </div>
 <div class=toolbar>
-  <input id=search placeholder="Buscar municipio..." style="min-width:220px">
-  <button class=alt onclick="table.download('csv','oportunidade_wins_hub_saude.csv',{bom:true})">Exportar CSV</button>
-  <button class=alt onclick="table.download('xlsx','oportunidade_wins_hub_saude.xlsx',{sheetName:'Oportunidade'})">Exportar Excel</button>
+  <input id=search placeholder="Buscar municipio (tolerante a erro)..." style="min-width:260px">
+  <button class=alt onclick="table.download('csv','oportunidade_wins_hub_saude.csv',{bom:true})">CSV</button>
+  <button class=alt onclick="table.download('xlsx','oportunidade_wins_hub_saude.xlsx',{sheetName:'Oportunidade'})">Excel</button>
+  <button onclick="exportPDF()">Relatorio PDF</button>
   <span class=pill id=count></span>
 </div>
 <div id=tbl></div>
@@ -68,7 +84,7 @@ a{color:var(--acc2)}
 const ptInt=c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0});};
 const ptDec=d=>c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});};
 function tierFmt(c){const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}
-let table, DATA=[];
+let table, DATA=[], fuse=null, chTier=null, chUf=null, chScatter=null;
 const cols=[
  {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:150,widthGrow:3},
  {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:80},
@@ -92,18 +108,42 @@ function miniKpis(d){
 function charts(d){
   Chart.defaults.color='#8aa0c0';
   const tiers=['ALTA','MEDIA','BAIXA'];
-  const tierCounts=tiers.map(t=>d.filter(r=>r.tier===t).length);
-  new Chart(document.getElementById('chTier'),{type:'doughnut',
-    data:{labels:tiers,datasets:[{data:tierCounts,backgroundColor:['#37d7a6','#f6c453','#4a5a78'],borderColor:'#131c30',borderWidth:2}]},
-    options:{responsive:true,plugins:{legend:{position:'right'}}}});
+  chTier=new Chart(document.getElementById('chTier'),{type:'doughnut',
+    data:{labels:tiers,datasets:[{data:tiers.map(t=>d.filter(r=>r.tier===t).length),backgroundColor:['#37d7a6','#f6c453','#4a5a78'],borderColor:'#131c30',borderWidth:2}]},
+    options:{responsive:true,animation:false,plugins:{legend:{position:'right'}}}});
   const byUf={};d.forEach(r=>{if(r.sweet_spot){byUf[r.uf]=(byUf[r.uf]||0)+1}});
   const top=Object.entries(byUf).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  new Chart(document.getElementById('chUf'),{type:'bar',
+  chUf=new Chart(document.getElementById('chUf'),{type:'bar',
     data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'#4f9cf9'}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#22304d'},beginAtZero:true}}}});
+    options:{responsive:true,animation:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#22304d'},beginAtZero:true}}}});
+  const colT={ALTA:'#37d7a6',MEDIA:'#f6c453',BAIXA:'#8aa0c0'};
+  const ds=tiers.map(t=>({label:t,backgroundColor:colT[t],pointRadius:2.5,
+    data:d.filter(r=>r.tier===t&&r.medicos_por_mil!=null&&r.cobertura_privada_pct!=null).map(r=>({x:r.medicos_por_mil,y:r.cobertura_privada_pct}))}));
+  chScatter=new Chart(document.getElementById('chScatter'),{type:'scatter',data:{datasets:ds},
+    options:{responsive:true,animation:false,plugins:{legend:{position:'top'}},
+      scales:{x:{title:{display:true,text:'Medicos / mil hab'},grid:{color:'#22304d'}},
+              y:{title:{display:true,text:'Cobertura privada %'},grid:{color:'#22304d'}}}}});
+}
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+  const active=table.getData('active');
+  doc.setFontSize(16);doc.setTextColor(20);doc.text('WiNS Hub Saude - Indice de Oportunidade',40,40);
+  doc.setFontSize(10);doc.setTextColor(110);
+  doc.text(`${active.length} municipios filtrados  |  gerado em ${new Date().toLocaleDateString('pt-BR')}`,40,58);
+  let y=72;
+  try{doc.addImage(chTier.toBase64Image(),'PNG',40,y,150,120);}catch(e){}
+  try{doc.addImage(chUf.toBase64Image(),'PNG',210,y,300,120);}catch(e){}
+  try{doc.addImage(chScatter.toBase64Image(),'PNG',525,y,290,120);}catch(e){}
+  doc.autoTable({startY:y+135,
+    head:[['Municipio','UF','Pop','Indice','Tier','Med/mil','Enf/mil','Cob%','PIB pc']],
+    body:active.map(r=>[r.municipio_nome,r.uf,r.populacao,r.indice_oportunidade,r.tier,r.medicos_por_mil,r.enfermeiros_por_mil,r.cobertura_privada_pct,r.pib_per_capita==null?'':Math.round(r.pib_per_capita)]),
+    styles:{fontSize:7,cellPadding:2},headStyles:{fillColor:[31,28,48]},alternateRowStyles:{fillColor:[244,246,250]}});
+  doc.save('relatorio_oportunidade_wins_hub_saude.pdf');
 }
 fetch('oportunidade.json').then(r=>r.json()).then(d=>{
   DATA=d; miniKpis(d); charts(d);
+  fuse=new Fuse(d,{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true});
   table=new Tabulator('#tbl',{
     data:d, layout:'fitColumns', responsiveLayout:'collapse', height:'620px',
     pagination:true, paginationSize:50, paginationSizeSelector:[25,50,100,250],
@@ -112,7 +152,12 @@ fetch('oportunidade.json').then(r=>r.json()).then(d=>{
   });
   const upd=()=>{document.getElementById('count').textContent=table.getDataCount('active')+' municipios';};
   table.on('tableBuilt',upd); table.on('dataFiltered',upd);
-  document.getElementById('search').addEventListener('input',e=>{table.setFilter('municipio_nome','like',e.target.value);});
+  document.getElementById('search').addEventListener('input',e=>{
+    const q=e.target.value.trim();
+    if(!q){table.clearFilter(true);return;}
+    const hits=new Set(fuse.search(q).map(h=>h.item.municipio_cod));
+    table.setFilter(row=>hits.has(row.municipio_cod));
+  });
 }).catch(e=>{document.getElementById('tbl').textContent='Falha ao carregar oportunidade.json: '+e;});
 </script>
 </body></html>

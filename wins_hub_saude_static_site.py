@@ -5,10 +5,12 @@ Converte as 3 paginas do app Flask (wins_hub_app.py) em arquivos estaticos
 em docs/, para publicar no GitHub Pages SEM servidor/banco:
 
   docs/index.html        -> Dashboard (publico, agregado) + navegacao
-  docs/oportunidade.html -> Indice de Oportunidade (Tabulator + graficos Chart.js,
-                            filtros/ordenacao/CSV/Excel no NAVEGADOR sobre o JSON)
+  docs/oportunidade.html -> Indice de Oportunidade: Tabulator + graficos Chart.js
+                            (tier, top UFs, dispersao), busca fuzzy (Fuse.js),
+                            export CSV/Excel/PDF (jsPDF). Tudo no NAVEGADOR.
   docs/oportunidade.json -> dados da tabela oportunidade_investimento (snapshot)
   docs/vender.html       -> "Para quem vender" (estatico)
+  docs/wins-logo.png     -> logo (favicon / Open Graph)
 
 Sem PII (so agregado por municipio). Idempotente: regrava docs/ a cada run.
 
@@ -18,6 +20,7 @@ Depois: git add -A && git commit -m "atualiza site" && git push
 """
 import os
 import json
+import shutil
 from decimal import Decimal
 
 from dotenv import load_dotenv
@@ -32,6 +35,8 @@ load_dotenv(os.path.join(BASE_DIR, ".env.saude"))
 DSN = os.environ["DATABASE_URL"]
 DOCS = os.path.join(BASE_DIR, "docs")
 PUBLICO = os.path.join(BASE_DIR, "wins_hub_saude_dashboard_publico.html")
+LOGO_SRC = r"C:\Users\kbadmin\Documents\Projetos\WiNS Hub\anexos\LOGO_WINS HUB.png"
+SITE_URL = "https://willahc.github.io/WiNS-Hub-Sa-de/"
 os.makedirs(DOCS, exist_ok=True)
 
 # Navegacao com links RELATIVOS (no Pages o site fica sob /WiNS-Hub-Sa-de/)
@@ -45,18 +50,57 @@ NAV = """
 </nav>
 """
 
-COLS = ["municipio_nome", "uf", "populacao", "medicos_por_mil", "enfermeiros_por_mil",
-        "tem_tomografo", "cobertura_privada_pct", "pib_per_capita",
-        "indice_oportunidade", "tier", "sweet_spot"]
+# municipio_cod (IBGE) entra para busca fuzzy e p/ o mapa coropletico (futuro)
+COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
+        "enfermeiros_por_mil", "tem_tomografo", "cobertura_privada_pct",
+        "pib_per_capita", "indice_oportunidade", "tier", "sweet_spot"]
 
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
 STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
+
+# Analytics opcional (GoatCounter, gratis). Crie conta em goatcounter.com,
+# troque SEUCODIGO e descomente para ativar.
+ANALYTICS = """<!-- Analytics: crie conta gratis em https://www.goatcounter.com e troque SEUCODIGO; depois descomente:
+<script data-goatcounter="https://SEUCODIGO.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+-->"""
+
+OG_DESC = ("Inteligencia territorial de saude no Brasil: indice de oportunidade por "
+           "municipio, carencia assistencial, mercado pagante e infraestrutura.")
+
+
+def meta(title, page):
+    """Tags de favicon + Open Graph (compartilhamento) por pagina."""
+    url = SITE_URL + page
+    return (
+        f'<link rel="icon" href="wins-logo.png">\n'
+        f'<meta name="description" content="{OG_DESC}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:title" content="{title} - WiNS Hub Saude">\n'
+        f'<meta property="og:description" content="{OG_DESC}">\n'
+        f'<meta property="og:image" content="{SITE_URL}wins-logo.png">\n'
+        f'<meta property="og:url" content="{url}">\n'
+        f'<meta name="twitter:card" content="summary_large_image">\n'
+        f'{ANALYTICS}\n'
+    )
+
+
+def inject_head(html, title, page):
+    """Insere as meta tags antes de </head> (uniforme p/ todas as paginas)."""
+    return html.replace("</head>", meta(title, page) + "</head>", 1)
 
 
 def _jsonable(v):
     if isinstance(v, Decimal):
         return round(float(v), 2)  # arredonda p/ encolher o JSON sem perder utilidade
     return v
+
+
+def gerar_assets():
+    if os.path.exists(LOGO_SRC):
+        shutil.copyfile(LOGO_SRC, os.path.join(DOCS, "wins-logo.png"))
+        print("  wins-logo.png copiado")
+    else:
+        print("  (logo nao encontrado; favicon/OG sem imagem)")
 
 
 def gerar_dados():
@@ -85,13 +129,14 @@ def gerar_index():
     with open(PUBLICO, encoding="utf-8") as f:
         html = f.read()
     html = html.replace("<body>", "<body>" + NAV, 1)
+    html = inject_head(html, "Dashboard", "index.html")
     with open(os.path.join(DOCS, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
     print(f"  index.html: {len(html)/1024:.0f} KB (dashboard + nav)")
 
 
-# Pagina de Oportunidade: Tabulator (paginacao/virtual DOM, filtro por coluna,
-# ordenacao, export CSV/Excel) + graficos Chart.js. Tudo no navegador, sobre o JSON.
+# Pagina de Oportunidade: Tabulator + Chart.js (tier/UF/dispersao) + Fuse.js +
+# export CSV/Excel/PDF. Tudo no navegador, sobre o JSON.
 OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width, initial-scale=1">
 <title>Indice de Oportunidade - WiNS Hub Saude</title>
@@ -99,10 +144,13 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
 {{style}}
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:880px){.charts{grid-template-columns:1fr}}
+.charts{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;margin-bottom:14px}
+@media(max-width:980px){.charts{grid-template-columns:1fr}}
 .chartbox{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
 .chartbox h3{margin:0 0 10px;font-size:14px;color:var(--mut);font-weight:600}
 .chartbox canvas{max-height:240px}
@@ -119,11 +167,13 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 <div class=charts>
   <div class=chartbox><h3>Municipios por tier</h3><canvas id=chTier></canvas></div>
   <div class=chartbox><h3>Top 12 UFs por sweet spots</h3><canvas id=chUf></canvas></div>
+  <div class=chartbox><h3>Carencia medica x mercado pagante</h3><canvas id=chScatter></canvas></div>
 </div>
 <div class=toolbar>
-  <input id=search placeholder="Buscar municipio..." style="min-width:220px">
-  <button class=alt onclick="table.download('csv','oportunidade_wins_hub_saude.csv',{bom:true})">Exportar CSV</button>
-  <button class=alt onclick="table.download('xlsx','oportunidade_wins_hub_saude.xlsx',{sheetName:'Oportunidade'})">Exportar Excel</button>
+  <input id=search placeholder="Buscar municipio (tolerante a erro)..." style="min-width:260px">
+  <button class=alt onclick="table.download('csv','oportunidade_wins_hub_saude.csv',{bom:true})">CSV</button>
+  <button class=alt onclick="table.download('xlsx','oportunidade_wins_hub_saude.xlsx',{sheetName:'Oportunidade'})">Excel</button>
+  <button onclick="exportPDF()">Relatorio PDF</button>
   <span class=pill id=count></span>
 </div>
 <div id=tbl></div>
@@ -132,7 +182,7 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 const ptInt=c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0});};
 const ptDec=d=>c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});};
 function tierFmt(c){const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}
-let table, DATA=[];
+let table, DATA=[], fuse=null, chTier=null, chUf=null, chScatter=null;
 const cols=[
  {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:150,widthGrow:3},
  {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:80},
@@ -156,18 +206,42 @@ function miniKpis(d){
 function charts(d){
   Chart.defaults.color='#8aa0c0';
   const tiers=['ALTA','MEDIA','BAIXA'];
-  const tierCounts=tiers.map(t=>d.filter(r=>r.tier===t).length);
-  new Chart(document.getElementById('chTier'),{type:'doughnut',
-    data:{labels:tiers,datasets:[{data:tierCounts,backgroundColor:['#37d7a6','#f6c453','#4a5a78'],borderColor:'#131c30',borderWidth:2}]},
-    options:{responsive:true,plugins:{legend:{position:'right'}}}});
+  chTier=new Chart(document.getElementById('chTier'),{type:'doughnut',
+    data:{labels:tiers,datasets:[{data:tiers.map(t=>d.filter(r=>r.tier===t).length),backgroundColor:['#37d7a6','#f6c453','#4a5a78'],borderColor:'#131c30',borderWidth:2}]},
+    options:{responsive:true,animation:false,plugins:{legend:{position:'right'}}}});
   const byUf={};d.forEach(r=>{if(r.sweet_spot){byUf[r.uf]=(byUf[r.uf]||0)+1}});
   const top=Object.entries(byUf).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  new Chart(document.getElementById('chUf'),{type:'bar',
+  chUf=new Chart(document.getElementById('chUf'),{type:'bar',
     data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:'#4f9cf9'}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#22304d'},beginAtZero:true}}}});
+    options:{responsive:true,animation:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'#22304d'},beginAtZero:true}}}});
+  const colT={ALTA:'#37d7a6',MEDIA:'#f6c453',BAIXA:'#8aa0c0'};
+  const ds=tiers.map(t=>({label:t,backgroundColor:colT[t],pointRadius:2.5,
+    data:d.filter(r=>r.tier===t&&r.medicos_por_mil!=null&&r.cobertura_privada_pct!=null).map(r=>({x:r.medicos_por_mil,y:r.cobertura_privada_pct}))}));
+  chScatter=new Chart(document.getElementById('chScatter'),{type:'scatter',data:{datasets:ds},
+    options:{responsive:true,animation:false,plugins:{legend:{position:'top'}},
+      scales:{x:{title:{display:true,text:'Medicos / mil hab'},grid:{color:'#22304d'}},
+              y:{title:{display:true,text:'Cobertura privada %'},grid:{color:'#22304d'}}}}});
+}
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
+  const active=table.getData('active');
+  doc.setFontSize(16);doc.setTextColor(20);doc.text('WiNS Hub Saude - Indice de Oportunidade',40,40);
+  doc.setFontSize(10);doc.setTextColor(110);
+  doc.text(`${active.length} municipios filtrados  |  gerado em ${new Date().toLocaleDateString('pt-BR')}`,40,58);
+  let y=72;
+  try{doc.addImage(chTier.toBase64Image(),'PNG',40,y,150,120);}catch(e){}
+  try{doc.addImage(chUf.toBase64Image(),'PNG',210,y,300,120);}catch(e){}
+  try{doc.addImage(chScatter.toBase64Image(),'PNG',525,y,290,120);}catch(e){}
+  doc.autoTable({startY:y+135,
+    head:[['Municipio','UF','Pop','Indice','Tier','Med/mil','Enf/mil','Cob%','PIB pc']],
+    body:active.map(r=>[r.municipio_nome,r.uf,r.populacao,r.indice_oportunidade,r.tier,r.medicos_por_mil,r.enfermeiros_por_mil,r.cobertura_privada_pct,r.pib_per_capita==null?'':Math.round(r.pib_per_capita)]),
+    styles:{fontSize:7,cellPadding:2},headStyles:{fillColor:[31,28,48]},alternateRowStyles:{fillColor:[244,246,250]}});
+  doc.save('relatorio_oportunidade_wins_hub_saude.pdf');
 }
 fetch('oportunidade.json').then(r=>r.json()).then(d=>{
   DATA=d; miniKpis(d); charts(d);
+  fuse=new Fuse(d,{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true});
   table=new Tabulator('#tbl',{
     data:d, layout:'fitColumns', responsiveLayout:'collapse', height:'620px',
     pagination:true, paginationSize:50, paginationSizeSelector:[25,50,100,250],
@@ -176,7 +250,12 @@ fetch('oportunidade.json').then(r=>r.json()).then(d=>{
   });
   const upd=()=>{document.getElementById('count').textContent=table.getDataCount('active')+' municipios';};
   table.on('tableBuilt',upd); table.on('dataFiltered',upd);
-  document.getElementById('search').addEventListener('input',e=>{table.setFilter('municipio_nome','like',e.target.value);});
+  document.getElementById('search').addEventListener('input',e=>{
+    const q=e.target.value.trim();
+    if(!q){table.clearFilter(true);return;}
+    const hits=new Set(fuse.search(q).map(h=>h.item.municipio_cod));
+    table.setFilter(row=>hits.has(row.municipio_cod));
+  });
 }).catch(e=>{document.getElementById('tbl').textContent='Falha ao carregar oportunidade.json: '+e;});
 </script>
 </body></html>"""
@@ -184,13 +263,15 @@ fetch('oportunidade.json').then(r=>r.json()).then(d=>{
 
 def gerar_oportunidade():
     html = OPORT_PAGE.replace("{{nav}}", NAV).replace("{{style}}", STYLE)
+    html = inject_head(html, "Indice de Oportunidade", "oportunidade.html")
     with open(os.path.join(DOCS, "oportunidade.html"), "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"  oportunidade.html: {len(html)/1024:.0f} KB (Tabulator + Chart.js)")
+    print(f"  oportunidade.html: {len(html)/1024:.0f} KB (Tabulator+Chart.js+Fuse+jsPDF)")
 
 
 def gerar_vender():
     html = render("Para quem vender", vender_body())
+    html = inject_head(html, "Para quem vender", "vender.html")
     with open(os.path.join(DOCS, "vender.html"), "w", encoding="utf-8") as f:
         f.write(html)
     print(f"  vender.html: {len(html)/1024:.0f} KB")
@@ -198,6 +279,7 @@ def gerar_vender():
 
 if __name__ == "__main__":
     print("Gerando site estatico em docs/ ...")
+    gerar_assets()
     gerar_dados()
     gerar_index()
     gerar_oportunidade()
