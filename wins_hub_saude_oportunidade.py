@@ -9,7 +9,7 @@ agregadas, dado aberto, sem PII):
   MERCADO   = PIB per capita + cobertura privada (capacidade de pagar)
 
 Cada componente e normalizado por percentil (percent_rank) sobre os 5.570
-municipios. indice = 0.40*carencia + 0.30*demanda + 0.30*mercado.
+municipios. indice = 0.35*carencia + 0.35*demanda + 0.30*mercado.
 
 Tiers: ALTA (top 10%), MEDIA (60-90%), BAIXA (<60%).
 Tambem marca o "sweet spot" = alta carencia E mercado viavel (deficit>=60 e mercado>=50).
@@ -84,7 +84,7 @@ sc AS (
 ),
 idx AS (
   SELECT *,
-    round((0.40*score_carencia + 0.30*score_demanda + 0.30*score_mercado)::numeric,1) AS indice_oportunidade
+    round((0.35*score_carencia + 0.35*score_demanda + 0.30*score_mercado)::numeric,1) AS indice_oportunidade
   FROM sc
 ),
 fin AS (
