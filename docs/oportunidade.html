@@ -1,0 +1,81 @@
+<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width, initial-scale=1"><title>Indice de Oportunidade - WiNS Hub Saude</title>
+<style>
+:root{--bg:#0b1220;--card:#131c30;--card2:#1a2740;--txt:#e6edf7;--mut:#8aa0c0;--acc:#37d7a6;--acc2:#4f9cf9;--bd:#22304d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:24px;margin:6px 0 4px}h2{color:var(--acc);font-size:16px;border-left:3px solid var(--acc);padding-left:10px;margin:28px 0 12px}
+.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+select,input{background:var(--card2);border:1px solid var(--bd);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px}
+button{background:var(--acc2);border:0;color:#06101f;border-radius:8px;padding:9px 16px;font:600 14px sans-serif;cursor:pointer}
+button.alt{background:var(--card2);color:var(--txt);border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd)}
+th{color:var(--mut);font-size:12px;text-transform:uppercase;cursor:pointer;user-select:none}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.tier-ALTA{color:#37d7a6;font-weight:700}.tier-MEDIA{color:#f6c453}.tier-BAIXA{color:#8aa0c0}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.alvo{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+.alvo.ok{border-color:var(--acc);background:linear-gradient(180deg,#10231c,#131c30)}
+.alvo h4{margin:0 0 4px;font-size:15px}.alvo .ex{color:var(--acc2);font-size:13px}.alvo .uso{color:var(--mut);font-size:13px;margin-top:4px}
+.chk{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:13px;color:var(--mut);cursor:pointer}
+.pill{display:inline-block;background:var(--card2);border:1px solid var(--bd);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--mut);margin-right:6px}
+a{color:var(--acc2)}
+</style></head><body>
+<nav style="position:sticky;top:0;z-index:9999;background:#0a0f1a;border-bottom:1px solid #22304d;
+            padding:11px 22px;display:flex;gap:6px;align-items:center;font:600 14px sans-serif">
+  <span style="color:#37d7a6;margin-right:18px">WiNS Hub Saude</span>
+  <a href="index.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Dashboard</a>
+  <a href="oportunidade.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Indice de Oportunidade</a>
+  <a href="vender.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Para quem vender</a>
+</nav>
+<div class=wrap>
+<h1>Indice de Oportunidade de Investimento em Saude</h1>
+<p class=sub>Carencia assistencial x demanda x mercado pagante x infraestrutura. Score 0-100 por municipio (snapshot agregado, sem PII).</p>
+<div class=card>
+  <div class=filters>
+    <label>UF <select id=uf><option value="">Todas</option></select></label>
+    <label>Tier <select id=tier><option value="">Todos</option><option>ALTA</option><option>MEDIA</option><option>BAIXA</option></select></label>
+    <label>Pop. minima <input id=minpop type=number value=0 style="width:110px"></label>
+    <label>Buscar <input id=q placeholder="municipio..."></label>
+    <button onclick=applyFilters()>Filtrar</button>
+    <button class=alt onclick=exportCsv()>Exportar CSV</button>
+    <span class=pill id=count></span>
+  </div>
+  <div id=tbl>Carregando dados...</div>
+</div>
+<script>
+const COLS=["municipio_nome","uf","populacao","medicos_por_mil","enfermeiros_por_mil","tem_tomografo","cobertura_privada_pct","pib_per_capita","indice_oportunidade","tier","sweet_spot"];
+const fmt=n=>n==null?'-':Number(n).toLocaleString('pt-BR');
+const v=id=>document.getElementById(id).value;
+let DATA=[],cur=[],sortKey='indice_oportunidade',sortDir=-1;
+function applyFilters(){
+  const uf=v('uf'),tier=v('tier'),minpop=+(v('minpop')||0),q=v('q').toLowerCase();
+  cur=DATA.filter(r=>(r.populacao||0)>=minpop && (!uf||r.uf===uf) && (!tier||r.tier===tier) && (!q||(r.municipio_nome||'').toLowerCase().includes(q)));
+  render();
+}
+function csvcell(x){if(x==null)return '';x=String(x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}
+function exportCsv(){
+  const lines=[COLS.join(',')].concat(cur.map(r=>COLS.map(c=>csvcell(r[c])).join(',')));
+  const blob=new Blob(["\ufeff"+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='oportunidade_wins_hub_saude.csv';a.click();URL.revokeObjectURL(a.href);
+}
+function sortBy(k){if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=-1}render()}
+function render(){
+  document.getElementById('count').textContent=cur.length+' municipios';
+  const c=[...cur].sort((a,b)=>{let x=a[sortKey],y=b[sortKey];if(typeof x==='string')return sortDir*x.localeCompare(y);return sortDir*((x||0)-(y||0))});
+  const H=[['municipio_nome','Municipio'],['uf','UF'],['populacao','Pop'],['indice_oportunidade','Indice'],['tier','Tier'],['medicos_por_mil','Med/mil'],['enfermeiros_por_mil','Enf/mil'],['cobertura_privada_pct','Cob.%'],['pib_per_capita','PIB pc']];
+  const nums=['populacao','indice_oportunidade','medicos_por_mil','enfermeiros_por_mil','cobertura_privada_pct','pib_per_capita'];
+  let h='<table><tr>'+H.map(x=>`<th class="${nums.includes(x[0])?'n':''}" onclick="sortBy('${x[0]}')">${x[1]}</th>`).join('')+'</tr>';
+  h+=c.map(r=>`<tr><td>${r.municipio_nome}</td><td>${r.uf}</td><td class=n>${fmt(r.populacao)}</td><td class=n><b>${r.indice_oportunidade}</b></td><td class="tier-${r.tier}">${r.tier}${r.sweet_spot?' &#9733;':''}</td><td class=n>${r.medicos_por_mil}</td><td class=n>${r.enfermeiros_por_mil}</td><td class=n>${r.cobertura_privada_pct}</td><td class=n>${fmt(Math.round(r.pib_per_capita))}</td></tr>`).join('');
+  document.getElementById('tbl').innerHTML=h+'</table>';
+}
+fetch('oportunidade.json').then(r=>r.json()).then(d=>{
+  DATA=d;
+  const ufs=[...new Set(d.map(r=>r.uf).filter(Boolean))].sort();
+  document.getElementById('uf').innerHTML='<option value="">Todas</option>'+ufs.map(x=>`<option>${x}</option>`).join('');
+  applyFilters();
+}).catch(e=>{document.getElementById('tbl').textContent='Falha ao carregar oportunidade.json: '+e;});
+</script>
+</div></body></html>

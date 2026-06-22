@@ -32,7 +32,15 @@ canvas{max-height:320px}
 .toggle{display:inline-flex;background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:3px;margin:0 0 12px}
 .tg{background:none;border:0;color:var(--mut);padding:7px 18px;border-radius:8px;cursor:pointer;font:600 13px sans-serif}
 .tg.on{background:var(--acc2);color:#06101f}
-</style></head><body><div class="wrap">
+</style></head><body>
+<nav style="position:sticky;top:0;z-index:9999;background:#0a0f1a;border-bottom:1px solid #22304d;
+            padding:11px 22px;display:flex;gap:6px;align-items:center;font:600 14px sans-serif">
+  <span style="color:#37d7a6;margin-right:18px">WiNS Hub Saude</span>
+  <a href="index.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Dashboard</a>
+  <a href="oportunidade.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Indice de Oportunidade</a>
+  <a href="vender.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Para quem vender</a>
+</nav>
+<div class="wrap">
 <h1>WiNS Hub Saude &mdash; Dashboard</h1>
 <p class="sub">CNES 202605 (DATASUS) &middot; QSA Receita Federal &middot; ANS &middot; Mais Medicos &middot; IBGE Censo 2022 &middot; gerado em <span id="ts"></span></p>
 <div class="kpis" id="kpis"></div>
