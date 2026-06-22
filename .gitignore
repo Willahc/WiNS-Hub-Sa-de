@@ -1,0 +1,23 @@
+# --- Segredos ---
+.env.saude
+
+# --- Dados brutos / grandes (baixáveis das fontes; estouram limite do GitHub) ---
+wins_hub_saude_dados/
+sih_tmp/
+
+# --- Artefatos gerados ---
+# Dashboard interno COM amostra/PII — nunca versionar
+wins_hub_saude_dashboard.html
+# (o _publico.html, agregado e sem PII, é versionado)
+wins_hub_saude_qsa_checkpoint.json
+wins_hub_saude_sih_checkpoint.json
+
+# --- Logs ---
+*.log
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
