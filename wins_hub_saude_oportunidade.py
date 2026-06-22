@@ -5,7 +5,7 @@ Sintetiza um score por municipio cruzando as camadas ja no banco (todas
 agregadas, dado aberto, sem PII):
 
   CARENCIA  = deficit medico + deficit enfermagem + deserto diagnostico
-  DEMANDA   = populacao + % idosos
+  DEMANDA   = internacoes/mil (SIH/SUS, demanda REAL) + populacao + % idosos
   MERCADO   = PIB per capita + cobertura privada (capacidade de pagar)
 
 Cada componente e normalizado por percentil (percent_rank) sobre os 5.570
@@ -30,11 +30,12 @@ CREATE TABLE IF NOT EXISTS oportunidade_investimento (
     municipio_nome        TEXT, uf CHAR(2), populacao INTEGER,
     medicos_por_mil       NUMERIC, enfermeiros_por_mil NUMERIC,
     tem_tomografo         BOOLEAN, cobertura_privada_pct NUMERIC, beneficiarios INTEGER,
-    pib_per_capita        NUMERIC, pct_idosos NUMERIC,
+    pib_per_capita        NUMERIC, pct_idosos NUMERIC, internacoes_por_mil NUMERIC,
     score_carencia        NUMERIC(5,1), score_demanda NUMERIC(5,1), score_mercado NUMERIC(5,1),
     indice_oportunidade   NUMERIC(5,1), tier VARCHAR(10), sweet_spot BOOLEAN,
     captado_em            TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS internacoes_por_mil NUMERIC;
 GRANT ALL ON oportunidade_investimento TO wins_saude;
 """
 
@@ -42,7 +43,7 @@ INSERT = """
 TRUNCATE oportunidade_investimento;
 INSERT INTO oportunidade_investimento
  (municipio_cod,municipio_nome,uf,populacao,medicos_por_mil,enfermeiros_por_mil,
-  tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,
+  tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,
   score_carencia,score_demanda,score_mercado,indice_oportunidade,tier,sweet_spot)
 WITH base AS (
   SELECT dm.municipio_cod, dm.municipio_nome, dm.uf, dm.populacao,
@@ -52,12 +53,14 @@ WITH base AS (
          COALESCE(ms.cobertura_privada_pct,0) cobertura_privada_pct,
          COALESCE(ms.beneficiarios,0) beneficiarios,
          COALESCE(mp.pib_per_capita,0) pib_per_capita,
-         COALESCE(mp.pct_idosos,0) pct_idosos
+         COALESCE(mp.pct_idosos,0) pct_idosos,
+         COALESCE(ds.internacoes_por_mil,0) internacoes_por_mil
   FROM desertos_medicos dm
   LEFT JOIN densidade_enfermagem de  USING (municipio_cod)
   LEFT JOIN densidade_equipamento eq USING (municipio_cod)
   LEFT JOIN mercado_saude ms         USING (municipio_cod)
   LEFT JOIN municipios_perfil mp     USING (municipio_cod)
+  LEFT JOIN demanda_sih ds           USING (municipio_cod)
   WHERE dm.populacao > 0
 ),
 pr AS (
@@ -65,6 +68,7 @@ pr AS (
     percent_rank() OVER (ORDER BY medicos_por_mil DESC)      AS d_med,
     percent_rank() OVER (ORDER BY enfermeiros_por_mil DESC)  AS d_enf,
     CASE WHEN tem_tomografo THEN 0 ELSE 1 END                AS d_diag,
+    percent_rank() OVER (ORDER BY internacoes_por_mil ASC)   AS r_sih,
     percent_rank() OVER (ORDER BY populacao ASC)             AS r_pop,
     percent_rank() OVER (ORDER BY pct_idosos ASC)            AS r_idoso,
     percent_rank() OVER (ORDER BY pib_per_capita ASC)        AS r_pib,
@@ -73,9 +77,9 @@ pr AS (
 ),
 sc AS (
   SELECT *,
-    round(((d_med + d_enf + d_diag)/3.0*100)::numeric,1)        AS score_carencia,
-    round(((0.6*r_pop + 0.4*r_idoso)*100)::numeric,1)           AS score_demanda,
-    round(((0.6*r_pib + 0.4*r_cob)*100)::numeric,1)             AS score_mercado
+    round(((d_med + d_enf + d_diag)/3.0*100)::numeric,1)              AS score_carencia,
+    round(((0.5*r_sih + 0.3*r_pop + 0.2*r_idoso)*100)::numeric,1)     AS score_demanda,
+    round(((0.6*r_pib + 0.4*r_cob)*100)::numeric,1)                   AS score_mercado
   FROM pr
 ),
 idx AS (
@@ -88,7 +92,7 @@ fin AS (
   FROM idx
 )
 SELECT municipio_cod,municipio_nome,uf,populacao,medicos_por_mil,enfermeiros_por_mil,
-       tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,
+       tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,
        score_carencia,score_demanda,score_mercado,indice_oportunidade,
        CASE WHEN pr_idx>=0.90 THEN 'ALTA' WHEN pr_idx>=0.60 THEN 'MEDIA' ELSE 'BAIXA' END,
        (score_carencia>=60 AND score_mercado>=50)

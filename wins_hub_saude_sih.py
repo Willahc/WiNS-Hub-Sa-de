@@ -8,7 +8,7 @@ soma valor (VAL_TOT), anualiza e grava em demanda_sih. So agregado, sem PII.
 Uso: python wins_hub_saude_sih.py
 """
 import os, sys, json, time
-import requests
+from ftplib import FTP, error_perm
 import dbfread
 from dotenv import load_dotenv
 import psycopg2
@@ -21,30 +21,57 @@ TMP = os.path.join(BASE_DIR, "sih_tmp")
 os.makedirs(TMP, exist_ok=True)
 CKPT = os.path.join(BASE_DIR, "wins_hub_saude_sih_checkpoint.json")
 
-URL = "https://ftp.datasus.gov.br/dissemin/publicos/SIHSUS/200801_/Dados/RD{uf}{ym}.dbc"
+# DATASUS via FTP (porta 21). O HTTP/HTTPS costuma cair; o FTP fica de pe.
+FTP_HOST = "ftp.datasus.gov.br"
+FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR",
        "PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
 N_MESES = 3
 
-SESS = requests.Session()
-SESS.headers.update({"User-Agent": "WiNS-Hub-Saude/1.0 (dados abertos SIH)"})
+_ftp = None
+
+
+def _conn():
+    """Conexao FTP anonima persistente (reconecta sob demanda), modo binario."""
+    global _ftp
+    if _ftp is None:
+        _ftp = FTP(FTP_HOST, timeout=90)
+        _ftp.login()
+        _ftp.cwd(FTP_DIR)
+        _ftp.voidcmd("TYPE I")
+    return _ftp
+
+
+def _reset():
+    global _ftp
+    try:
+        _ftp.quit()
+    except Exception:
+        pass
+    _ftp = None
 
 
 def existe(uf, ym):
-    try:
-        r = SESS.head(URL.format(uf=uf, ym=ym), timeout=30, allow_redirects=True)
-        return r.status_code == 200
-    except requests.RequestException:
-        return False
+    name = f"RD{uf}{ym}.dbc"
+    for _ in range(2):
+        try:
+            _conn().size(name)
+            return True
+        except error_perm:
+            return False  # 550 = arquivo nao existe
+        except Exception:
+            _reset()
+    return False
 
 
 def meses_recentes(n):
-    """Sonda para tras (usando SP como referencia) os n meses mais recentes disponiveis."""
+    """Sonda para tras os n meses COMPLETOS (todos os 27 UF) mais recentes.
+    Exigir cobertura total evita enviesar a anualizacao com meses parciais."""
     achados = []
-    ano, mes = 2026, 5
+    ano, mes = 2026, 6
     for _ in range(18):
-        ym = f"{ano}{mes:02d}"
-        if existe("SP", ym):
+        ym = f"{ano % 100:02d}{mes:02d}"  # DATASUS usa ano de 2 digitos (ex.: RDSP2604.dbc)
+        if all(existe(uf, ym) for uf in UFS):  # mes completo = 27/27 UF
             achados.append(ym)
             if len(achados) >= n:
                 break
@@ -58,16 +85,23 @@ def baixar(uf, ym):
     dest = os.path.join(TMP, f"RD{uf}{ym}.dbc")
     if os.path.exists(dest) and os.path.getsize(dest) > 0:
         return dest
-    try:
-        with SESS.get(URL.format(uf=uf, ym=ym), stream=True, timeout=120) as r:
-            if r.status_code != 200:
-                return None
+    name = f"RD{uf}{ym}.dbc"
+    for _ in range(3):
+        try:
             with open(dest, "wb") as f:
-                for ch in r.iter_content(1 << 18):
-                    f.write(ch)
-        return dest
-    except requests.RequestException:
-        return None
+                _conn().retrbinary("RETR " + name, f.write)
+            if os.path.getsize(dest) > 0:
+                return dest
+        except error_perm:
+            break  # nao existe
+        except Exception:
+            _reset()
+            time.sleep(2)
+    try:
+        os.remove(dest)
+    except OSError:
+        pass
+    return None
 
 
 def processar(dbc_path, agg):

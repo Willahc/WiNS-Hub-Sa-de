@@ -71,7 +71,7 @@ NAV = """
 # municipio_cod (IBGE) entra para busca fuzzy e p/ o mapa coropletico (futuro)
 COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
         "enfermeiros_por_mil", "tem_tomografo", "cobertura_privada_pct",
-        "pib_per_capita", "indice_oportunidade", "tier", "sweet_spot"]
+        "internacoes_por_mil", "pib_per_capita", "indice_oportunidade", "tier", "sweet_spot"]
 
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
 STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
@@ -207,6 +207,7 @@ const cols=[
  {title:"Med/mil",field:"medicos_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
  {title:"Enf/mil",field:"enfermeiros_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
  {title:"Cob.%",field:"cobertura_privada_pct",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:90},
+ {title:"Intern/mil",field:"internacoes_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:100},
  {title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
  {title:"Tomografo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:100,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
  {title:"Sweet",field:"sweet_spot",formatter:"tickCross",hozAlign:"center",width:80,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
