@@ -21,6 +21,7 @@ Depois: git add -A && git commit -m "atualiza site" && git push
 import os
 import json
 import shutil
+import subprocess
 import urllib.request
 from datetime import date
 from decimal import Decimal
@@ -72,7 +73,7 @@ NAV = """
 COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
         "enfermeiros_por_mil", "tem_tomografo", "cobertura_privada_pct",
         "internacoes_por_mil", "leitos_sus_por_mil", "evitaveis_por_mil", "mortalidade_infantil",
-        "apac_onco_por_mil", "apac_dialise_por_mil", "pib_per_capita",
+        "apac_onco_por_mil", "apac_dialise_por_mil", "acesso_idx", "pib_per_capita",
         "indice_oportunidade", "tier", "sweet_spot"]
 
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
@@ -186,6 +187,18 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
   <div class=chartbox><h3>Top 12 UFs por sweet spots</h3><canvas id=chUf></canvas></div>
   <div class=chartbox><h3>Carencia medica x mercado pagante</h3><canvas id=chScatter></canvas></div>
 </div>
+<div class=card style="border-color:var(--acc);background:linear-gradient(180deg,#10231c,#131c30)">
+  <b>Quer a base completa, um recorte por estado/segmento ou consultoria?</b>
+  <!-- Para ATIVAR: crie conta gratis em https://web3forms.com e troque SUA-CHAVE-WEB3FORMS pela sua access key. -->
+  <form action="https://api.web3forms.com/submit" method="POST" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <input type="hidden" name="access_key" value="SUA-CHAVE-WEB3FORMS">
+    <input type="hidden" name="subject" value="Lead - WiNS Hub Saude">
+    <input type="text" name="nome" placeholder="Nome" required>
+    <input type="email" name="email" placeholder="E-mail" required>
+    <input type="text" name="empresa" placeholder="Empresa">
+    <button type="submit">Quero acesso</button>
+  </form>
+</div>
 <div class=toolbar>
   <input id=search placeholder="Buscar municipio (tolerante a erro)..." style="min-width:260px">
   <button class=alt onclick="table.download('csv','oportunidade_wins_hub_saude.csv',{bom:true})">CSV</button>
@@ -213,6 +226,7 @@ const cols=[
  {title:"Leitos SUS/mil",field:"leitos_sus_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:115},
  {title:"Mort.inf/mil",field:"mortalidade_infantil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:105},
  {title:"Evit/mil",field:"evitaveis_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
+ {title:"Acesso leitos",field:"acesso_idx",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:110},
  {title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
  {title:"Tomografo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:100,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
  {title:"Sweet",field:"sweet_spot",formatter:"tickCross",hozAlign:"center",width:80,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
@@ -331,6 +345,24 @@ def gerar_malha(force=False):
     print(f"  municipios_br.geojson: {len(g['features'])} munic ({os.path.getsize(MALHA_FILE)/1024/1024:.1f} MB)")
 
 
+def gerar_topojson():
+    """Gera o TopoJSON (mapshaper/Node) ~67% menor que o GeoJSON p/ o mapa.
+    Best-effort: so roda se o .topojson nao existir e houver Node/npx."""
+    topo = os.path.join(DOCS, "municipios_br.topojson")
+    if os.path.exists(topo):
+        print(f"  municipios_br.topojson: ja existe ({os.path.getsize(topo)/1024/1024:.1f} MB)")
+        return
+    try:
+        subprocess.run(["npx", "-y", "mapshaper", "municipios_br.geojson",
+                        "-simplify", "18%", "keep-shapes",
+                        "-o", "format=topojson", "quantization=1e5", "municipios_br.topojson"],
+                       cwd=DOCS, check=True, capture_output=True, timeout=300,
+                       shell=(os.name == "nt"))
+        print(f"  municipios_br.topojson gerado ({os.path.getsize(topo)/1024/1024:.1f} MB)")
+    except Exception as e:
+        print(f"  (topojson nao regenerado: {e}; mapa usara o existente/geojson)")
+
+
 # Pagina do MAPA COROPLETICO: Leaflet pinta cada municipio por tier/indice,
 # casando a malha do IBGE (por codigo) com oportunidade.json. Renderer canvas.
 MAPA_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
@@ -338,6 +370,7 @@ MAPA_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 <title>Mapa de Oportunidade - WiNS Hub Saude</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/topojson-client@3"></script>
 <style>
 {{style}}
 #map{height:72vh;border-radius:10px}
@@ -400,9 +433,11 @@ map=L.map('map',{preferCanvas:true,scrollWheelZoom:false}).setView([-15,-53],4);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:12}).addTo(map);
 Promise.all([
   fetch('oportunidade.json').then(r=>r.json()),
-  fetch('municipios_br.geojson').then(r=>r.json())
-]).then(([dados,geo])=>{
+  fetch('municipios_br.topojson').then(r=>r.json())
+]).then(([dados,topo])=>{
   dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+  const obj=topo.objects[Object.keys(topo.objects)[0]];
+  const geo=topojson.feature(topo,obj);
   layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),
     onEachFeature:(f,l)=>l.bindPopup(()=>popupFor(f.properties))}).addTo(map);
   document.getElementById('info').textContent=DMAP.size+' municipios com dado';
@@ -455,6 +490,7 @@ if __name__ == "__main__":
     print("Gerando site estatico em docs/ ...")
     gerar_assets()
     gerar_malha()
+    gerar_topojson()
     gerar_dados()
     gerar_index()
     gerar_oportunidade()

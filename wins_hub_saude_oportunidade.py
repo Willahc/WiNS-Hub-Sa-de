@@ -4,7 +4,7 @@ WiNS Hub Saude - Indice de Oportunidade de Investimento em Saude
 Sintetiza um score por municipio cruzando as camadas ja no banco (todas
 agregadas, dado aberto, sem PII):
 
-  CARENCIA  = oferta (deficit medico/enfermagem/leitos SUS + deserto diagnostico)
+  CARENCIA  = oferta (deficit medico/enfermagem + acesso a leitos SUS 2SFCA + deserto diagnostico)
               + resultado (mortalidade evitavel 5-74 + mortalidade infantil)
   DEMANDA   = internacoes/mil (SIH/SUS, demanda REAL) + populacao + % idosos
   MERCADO   = PIB per capita + cobertura privada (capacidade de pagar)
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS oportunidade_investimento (
     tem_tomografo         BOOLEAN, cobertura_privada_pct NUMERIC, beneficiarios INTEGER,
     pib_per_capita        NUMERIC, pct_idosos NUMERIC, internacoes_por_mil NUMERIC,
     leitos_sus_por_mil    NUMERIC, evitaveis_por_mil NUMERIC, mortalidade_infantil NUMERIC,
-    apac_onco_por_mil     NUMERIC, apac_dialise_por_mil NUMERIC,
+    apac_onco_por_mil     NUMERIC, apac_dialise_por_mil NUMERIC, acesso_idx NUMERIC,
     score_carencia        NUMERIC(5,1), score_demanda NUMERIC(5,1), score_mercado NUMERIC(5,1),
     indice_oportunidade   NUMERIC(5,1), tier VARCHAR(10), sweet_spot BOOLEAN,
     captado_em            TIMESTAMP DEFAULT NOW()
@@ -44,6 +44,7 @@ ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS evitaveis_por_mil
 ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS mortalidade_infantil NUMERIC;
 ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS apac_onco_por_mil NUMERIC;
 ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS apac_dialise_por_mil NUMERIC;
+ALTER TABLE oportunidade_investimento ADD COLUMN IF NOT EXISTS acesso_idx NUMERIC;
 GRANT ALL ON oportunidade_investimento TO wins_saude;
 """
 
@@ -51,7 +52,7 @@ INSERT = """
 TRUNCATE oportunidade_investimento;
 INSERT INTO oportunidade_investimento
  (municipio_cod,municipio_nome,uf,populacao,medicos_por_mil,enfermeiros_por_mil,
-  tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,leitos_sus_por_mil,evitaveis_por_mil,mortalidade_infantil,apac_onco_por_mil,apac_dialise_por_mil,
+  tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,leitos_sus_por_mil,evitaveis_por_mil,mortalidade_infantil,apac_onco_por_mil,apac_dialise_por_mil,acesso_idx,
   score_carencia,score_demanda,score_mercado,indice_oportunidade,tier,sweet_spot)
 WITH base AS (
   SELECT dm.municipio_cod, dm.municipio_nome, dm.uf, dm.populacao,
@@ -69,7 +70,8 @@ WITH base AS (
               THEN round(COALESCE(msim.obitos_infantis,0)::numeric / ns.nascidos_vivos * 1000, 2)
               ELSE 0 END AS mortalidade_infantil,
          COALESCE(ap.onco_por_mil,0) apac_onco_por_mil,
-         COALESCE(ap.dialise_por_mil,0) apac_dialise_por_mil
+         COALESCE(ap.dialise_por_mil,0) apac_dialise_por_mil,
+         COALESCE(ae.acesso_idx,0) acesso_idx
   FROM desertos_medicos dm
   LEFT JOIN densidade_enfermagem de  USING (municipio_cod)
   LEFT JOIN densidade_equipamento eq USING (municipio_cod)
@@ -81,6 +83,7 @@ WITH base AS (
   LEFT JOIN mortalidade_sim msim     USING (municipio_cod)
   LEFT JOIN nascimentos_sinasc ns    USING (municipio_cod)
   LEFT JOIN demanda_apac ap          USING (municipio_cod)
+  LEFT JOIN acesso_espacial ae       USING (municipio_cod)
   WHERE dm.populacao > 0
 ),
 pr AS (
@@ -89,7 +92,7 @@ pr AS (
     percent_rank() OVER (ORDER BY enfermeiros_por_mil DESC)  AS d_enf,
     CASE WHEN tem_tomografo THEN 0 ELSE 1 END                AS d_diag,
     percent_rank() OVER (ORDER BY internacoes_por_mil ASC)   AS r_sih,
-    percent_rank() OVER (ORDER BY leitos_sus_por_mil DESC)   AS d_leitos,
+    percent_rank() OVER (ORDER BY acesso_idx DESC)           AS d_acesso,
     percent_rank() OVER (ORDER BY evitaveis_por_mil ASC)     AS d_evit,
     percent_rank() OVER (ORDER BY mortalidade_infantil ASC)  AS d_inf,
     percent_rank() OVER (ORDER BY (apac_onco_por_mil + apac_dialise_por_mil) ASC) AS r_apac,
@@ -101,7 +104,7 @@ pr AS (
 ),
 sc AS (
   SELECT *,
-    round((( 0.6*((d_med+d_enf+d_diag+d_leitos)/4.0) + 0.4*((d_evit+d_inf)/2.0) )*100)::numeric,1) AS score_carencia,
+    round((( 0.6*((d_med+d_enf+d_diag+d_acesso)/4.0) + 0.4*((d_evit+d_inf)/2.0) )*100)::numeric,1) AS score_carencia,
     round(((0.5*r_sih + 0.2*r_apac + 0.2*r_pop + 0.1*r_idoso)*100)::numeric,1) AS score_demanda,
     round(((0.6*r_pib + 0.4*r_cob)*100)::numeric,1)                   AS score_mercado
   FROM pr
@@ -116,7 +119,7 @@ fin AS (
   FROM idx
 )
 SELECT municipio_cod,municipio_nome,uf,populacao,medicos_por_mil,enfermeiros_por_mil,
-       tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,leitos_sus_por_mil,evitaveis_por_mil,mortalidade_infantil,apac_onco_por_mil,apac_dialise_por_mil,
+       tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,leitos_sus_por_mil,evitaveis_por_mil,mortalidade_infantil,apac_onco_por_mil,apac_dialise_por_mil,acesso_idx,
        score_carencia,score_demanda,score_mercado,indice_oportunidade,
        CASE WHEN pr_idx>=0.90 THEN 'ALTA' WHEN pr_idx>=0.60 THEN 'MEDIA' ELSE 'BAIXA' END,
        (score_carencia>=60 AND score_mercado>=50)

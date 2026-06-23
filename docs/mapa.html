@@ -3,6 +3,7 @@
 <title>Mapa de Oportunidade - WiNS Hub Saude</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/topojson-client@3"></script>
 <style>
 
 :root{--bg:#0b1220;--card:#131c30;--card2:#1a2740;--txt:#e6edf7;--mut:#8aa0c0;--acc:#37d7a6;--acc2:#4f9cf9;--bd:#22304d}
@@ -105,9 +106,11 @@ map=L.map('map',{preferCanvas:true,scrollWheelZoom:false}).setView([-15,-53],4);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OSM &copy; CARTO',maxZoom:12}).addTo(map);
 Promise.all([
   fetch('oportunidade.json').then(r=>r.json()),
-  fetch('municipios_br.geojson').then(r=>r.json())
-]).then(([dados,geo])=>{
+  fetch('municipios_br.topojson').then(r=>r.json())
+]).then(([dados,topo])=>{
   dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+  const obj=topo.objects[Object.keys(topo.objects)[0]];
+  const geo=topojson.feature(topo,obj);
   layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),
     onEachFeature:(f,l)=>l.bindPopup(()=>popupFor(f.properties))}).addTo(map);
   document.getElementById('info').textContent=DMAP.size+' municipios com dado';
