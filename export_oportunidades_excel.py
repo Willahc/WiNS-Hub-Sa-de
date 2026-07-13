@@ -110,6 +110,66 @@ QUERIES = {
           AND ms.cobertura_privada_pct < 10.0        
           AND e.decisor_nome IS NOT NULL             
         ORDER BY mp.pib_per_capita DESC;
+    """,
+    
+    "6. Sírio Oncologia": """
+        SELECT 
+            da.municipio_nome, 
+            da.uf, 
+            da.populacao,
+            round(da.onco_por_mil, 2) AS demanda_oncologia_por_mil,
+            round(ms.cobertura_privada_pct, 1) AS pct_planos_de_saude,
+            round(mp.pib_per_capita, 0) AS pib_per_capita
+        FROM demanda_apac da
+        JOIN mercado_saude ms ON ms.municipio_cod = da.municipio_cod
+        JOIN municipios_perfil mp ON mp.municipio_cod = da.municipio_cod
+        WHERE da.onco_por_mil > 0.8                   
+          AND ms.cobertura_privada_pct > 25.0         
+          AND mp.pib_per_capita > 40000               
+          AND da.municipio_cod NOT IN (
+              SELECT DISTINCT municipio_cod 
+              FROM estabelecimentos 
+              WHERE tipo_unidade_cod = 7             
+          )
+        ORDER BY da.onco_por_mil DESC, mp.pib_per_capita DESC;
+    """,
+    
+    "7. Sírio Saúde Corp": """
+        SELECT 
+            e.razao_social, 
+            e.nome_fantasia, 
+            e.uf, 
+            e.municipio_nome, 
+            round(dm.medicos_por_mil_hab, 2) AS medicos_por_mil,
+            round(mp.pib_per_capita, 0) AS pib_per_capita,
+            e.decisor_nome, 
+            e.decisor_cargo, 
+            e.decisor_email,
+            e.telefone
+        FROM estabelecimentos e
+        JOIN desertos_medicos dm ON dm.municipio_cod = e.municipio_cod
+        JOIN municipios_perfil mp ON mp.municipio_cod = e.municipio_cod
+        WHERE dm.classificacao IN ('DESERTO', 'BAIXA_COBERTURA')
+          AND mp.pib_per_capita > 45000               
+          AND e.decisor_nome IS NOT NULL             
+        ORDER BY mp.pib_per_capita DESC;
+    """,
+    
+    "8. Sírio Diagnósticos": """
+        SELECT 
+            de.municipio_nome, 
+            de.uf, 
+            de.populacao,
+            round(ms.cobertura_privada_pct, 1) AS pct_planos_de_saude,
+            round(mp.pib_per_capita, 0) AS pib_per_capita,
+            CASE WHEN de.tem_tomografo THEN 'Sim, mas insuficiente' ELSE 'Nenhum Cadastrado' END AS tomografo
+        FROM densidade_equipamento de
+        JOIN mercado_saude ms ON ms.municipio_cod = de.municipio_cod
+        JOIN municipios_perfil mp ON mp.municipio_cod = de.municipio_cod
+        WHERE de.populacao > 40000
+          AND ms.cobertura_privada_pct > 30.0         
+          AND de.tem_tomografo = false                
+        ORDER BY de.populacao DESC;
     """
 }
 

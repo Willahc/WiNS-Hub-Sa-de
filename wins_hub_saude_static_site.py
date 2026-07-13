@@ -218,6 +218,9 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
   <button id="tab-oncology" class="tab-btn" onclick="filterTab('oncology')">🧬 3. Expansão Oncologia/Diálise</button>
   <button id="tab-staffing" class="tab-btn" onclick="filterTab('staffing')">🧑‍⚕️ 4. Outsourcing Enfermagem</button>
   <button id="tab-insurance" class="tab-btn" onclick="filterTab('insurance')">💎 5. Planos de Saúde B2B</button>
+  <button id="tab-sirio-onco" class="tab-btn" style="border-color:#ffa657" onclick="filterTab('sirio-onco')">🎗️ Sírio - Oncologia Expansão</button>
+  <button id="tab-sirio-corp" class="tab-btn" style="border-color:#ffa657" onclick="filterTab('sirio-corp')">💼 Sírio - Saúde Corporativa</button>
+  <button id="tab-sirio-diag" class="tab-btn" style="border-color:#ffa657" onclick="filterTab('sirio-diag')">🔬 Sírio - Diagnósticos</button>
 </div>
 <div class=toolbar>
   <input id=search placeholder="Buscar municipio (tolerante a erro)..." style="min-width:260px">
@@ -356,6 +359,26 @@ function filterTab(mode) {
     table.setFilter([
       {field: "pib_per_capita", type: ">", value: 35000},
       {field: "cobertura_privada_pct", type: "<", value: 10}
+    ]);
+  } else if (mode === 'sirio-onco') {
+    // Sírio Oncologia: apac_onco_por_mil > 0.8 && cobertura_privada_pct > 25 && pib_per_capita > 40000
+    table.setFilter([
+      {field: "apac_onco_por_mil", type: ">", value: 0.8},
+      {field: "cobertura_privada_pct", type: ">", value: 25.0},
+      {field: "pib_per_capita", type: ">", value: 40000}
+    ]);
+  } else if (mode === 'sirio-corp') {
+    // Sírio Saúde Corporativa: medicos_por_mil < 1.0 (deserto/baixa) && pib_per_capita > 45000
+    table.setFilter([
+      {field: "medicos_por_mil", type: "<", value: 1.0},
+      {field: "pib_per_capita", type: ">", value: 45000}
+    ]);
+  } else if (mode === 'sirio-diag') {
+    // Sírio Diagnósticos: populacao > 40000 && cobertura_privada_pct > 30.0 && tem_tomografo === false
+    table.setFilter([
+      {field: "populacao", type: ">", value: 40000},
+      {field: "cobertura_privada_pct", type: ">", value: 30.0},
+      {field: "tem_tomografo", type: "==", value: false}
     ]);
   }
 }
