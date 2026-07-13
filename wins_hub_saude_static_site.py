@@ -462,9 +462,17 @@ OPORT_DETAIL_PAGE = """<!doctype html>
         initialSort:[{{column:'indice_oportunidade',dir:'desc'}}], columns:cols,
         rowClick:function(e, row){{
           const rdata = row.getData();
-          openModal(rdata);
           selectedMuniData = rdata;
-          if (typeof calcROI === "function") calcROI();
+          try {{
+            openModal(rdata);
+          }} catch(err) {{
+            console.error("openModal error:", err);
+          }}
+          try {{
+            if (typeof calcROI === "function") calcROI();
+          }} catch(err) {{
+            console.error("calcROI error:", err);
+          }}
         }}
       }});
       
