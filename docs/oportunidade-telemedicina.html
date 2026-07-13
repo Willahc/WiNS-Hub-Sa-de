@@ -168,6 +168,13 @@ a{color:var(--acc2)}
         <span>Mortalidade Infantil: <b id="m-inf" style="color:var(--red)">14.2</b> /mil nasc.</span>
       </div>
     </div>
+    
+    <!-- Secao de ROI do Sirio (Exibida apenas nas subpaginas do Sirio) -->
+    <div id="modal-roi-section" style="display:none; margin-top:16px; background:linear-gradient(180deg,#1b253c,#131c30); padding:16px; border-radius:10px; border:1px solid #ffa657">
+      <h3 style="margin:0 0 8px; font-size:13px; color:#ffa657">🧮 Simulação de Viabilidade Econômica (ROI)</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; font-size:12.5px" id="modal-roi-results">
+      </div>
+    </div>
   </div>
 </div>
 
@@ -178,7 +185,7 @@ a{color:var(--acc2)}
     function tierFmt(c){const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}
     function fmt(n){return n==null?'-':Number(n).toLocaleString('pt-BR');}
     
-    let table, DATA=[], fuse=null;
+    let table, DATA=[], fuse=null, selectedMuniData=null;
     const cols=[
       {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:160,widthGrow:3},
       {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:70},
@@ -258,6 +265,11 @@ a{color:var(--acc2)}
       document.getElementById('m-evit').textContent = data.evitaveis_por_mil != null ? fmt(data.evitaveis_por_mil) : '-';
       document.getElementById('m-inf').textContent = data.mortalidade_infantil != null ? fmt(data.mortalidade_infantil) : '-';
       
+      const modalRoiSec = document.getElementById('modal-roi-section');
+      if (modalRoiSec) {
+        modalRoiSec.style.display = SLUG.includes('sirio') ? 'block' : 'none';
+      }
+      
       document.getElementById('muni-modal').style.display = 'flex';
     }
     
@@ -310,7 +322,6 @@ a{color:var(--acc2)}
     }
     
     const SLUG = "oportunidade-telemedicina";
-    let selectedMuniData = null;
     
     if (SLUG.includes("sirio")) {
       document.getElementById("roi-card").style.display = "block";
@@ -380,6 +391,7 @@ a{color:var(--acc2)}
       
       const cityLabel = document.getElementById("roi-selected-city");
       const results = document.getElementById("roi-results");
+      const modalResults = document.getElementById("modal-roi-results");
       
       let pop = 100000;
       let cob = 30;
@@ -412,13 +424,15 @@ a{color:var(--acc2)}
         const roi = capex > 0 ? (ebitda / capex) * 100 : 0;
         const payback = ebitda > 0 ? capex / ebitda : 0;
         
-        results.innerHTML = `
+        const html = `
           <div><div style="color:var(--mut)">Pacientes Anuais:</div><b style="font-size:16px; color:#ffa657">${Math.round(pacientes)}</b></div>
           <div><div style="color:var(--mut)">Faturamento/ano:</div><b style="font-size:16px; color:var(--acc)">R$ ${((receita/1000000)).toFixed(2)}M</b></div>
           <div><div style="color:var(--mut)">EBITDA/ano (25%):</div><b style="font-size:16px; color:var(--acc)">R$ ${((ebitda/1000000)).toFixed(2)}M</b></div>
           <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">${roi.toFixed(1)}%</b></div>
           <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">${payback > 0 ? payback.toFixed(1) + ' anos' : '-'}</b></div>
         `;
+        results.innerHTML = html;
+        if (modalResults) modalResults.innerHTML = html;
       } else if (SLUG === "oportunidade-sirio-corporativa") {
         const mensal = Number(document.getElementById("val-mensal").value);
         const plano = Number(document.getElementById("val-plano").value);
@@ -435,13 +449,15 @@ a{color:var(--acc2)}
         const retornoLiquido = economiaTotal - custoAnualSirio;
         const roi = custoAnualSirio > 0 ? (retornoLiquido / custoAnualSirio) * 100 : 0;
         
-        results.innerHTML = `
+        const html = `
           <div><div style="color:var(--mut)">Economia Anual/Vida:</div><b style="font-size:16px; color:var(--acc)">R$ ${Math.round(economiaTotal)}</b></div>
           <div><div style="color:var(--mut)">Custo Sírio/Vida:</div><b style="font-size:16px; color:var(--mut)">R$ ${Math.round(custoAnualSirio)}</b></div>
           <div><div style="color:var(--mut)">Retorno Líquido/Vida:</div><b style="font-size:16px; color:var(--acc)">R$ ${Math.round(retornoLiquido)}</b></div>
           <div><div style="color:var(--mut)">ROI Contratante:</div><b style="font-size:16px; color:#ffa657">${roi.toFixed(1)}%</b></div>
           <div><div style="color:var(--mut)">Público Alvo (Cidade):</div><b style="font-size:15px; color:var(--txt)">${fmt(pop)} hab</b></div>
         `;
+        results.innerHTML = html;
+        if (modalResults) modalResults.innerHTML = html;
       } else if (SLUG === "oportunidade-sirio-diagnosticos") {
         const capex = Number(document.getElementById("val-capex").value);
         const ticket = Number(document.getElementById("val-ticket").value);
@@ -460,13 +476,15 @@ a{color:var(--acc2)}
         const roi = capex > 0 ? (ebitda / capex) * 100 : 0;
         const payback = ebitda > 0 ? capex / ebitda : 0;
         
-        results.innerHTML = `
+        const html = `
           <div><div style="color:var(--mut)">Exames Sírio/ano:</div><b style="font-size:16px; color:#ffa657">${Math.round(examesSirio)}</b></div>
           <div><div style="color:var(--mut)">Receita Anual:</div><b style="font-size:16px; color:var(--acc)">R$ ${((receita/1000000)).toFixed(2)}M</b></div>
           <div><div style="color:var(--mut)">EBITDA/ano (30%):</div><b style="font-size:16px; color:var(--acc)">R$ ${((ebitda/1000000)).toFixed(2)}M</b></div>
           <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">${roi.toFixed(1)}%</b></div>
           <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">${payback > 0 ? payback.toFixed(1) + ' anos' : '-'}</b></div>
         `;
+        results.innerHTML = html;
+        if (modalResults) modalResults.innerHTML = html;
       }
     }
   </script>
