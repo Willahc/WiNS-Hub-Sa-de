@@ -79,6 +79,311 @@ COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
 STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
 
+STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
+
+OPORTUNIDADES_METADATA = [
+    {
+        "slug": "oportunidade-equipamentos",
+        "title": "Equipamentos Diagnósticos (MedTech)",
+        "emoji": "🏥",
+        "badge_text": "Oportunidade Geral",
+        "badge_class": "badge-general",
+        "why": "Existe um mercado altamente relevante de hospitais e clínicas privadas em cidades de médio e grande porte com forte penetração de planos de saúde, mas que hoje não possuem equipamentos próprios de tomografia cadastrados no CNES. A venda ou locação estruturada de equipamentos de imagem (MedTech) nessas praças atende a uma demanda local reprimida e evita o deslocamento de pacientes premium.",
+        "where": "Cidades com população superior a 25.000 habitantes, penetração de cobertura de saúde privada superior a 15% e que atualmente não possuem nenhum tomógrafo cadastrado no sistema público ou privado do CNES.",
+        "js_filter": "row.tem_tomografo === false && row.populacao > 25000 && row.cobertura_privada_pct > 15"
+    },
+    {
+        "slug": "oportunidade-telemedicina",
+        "title": "Telemedicina Corporativa",
+        "emoji": "📞",
+        "badge_text": "Oportunidade Geral",
+        "badge_class": "badge-general",
+        "why": "Cidades classificadas como desertos médicos (menos de 0.5 médicos por mil habitantes) criam um sério gargalo operacional e financeiro para cooperativas agroindustriais, indústrias locais e prefeituras. O atendimento via telemedicina e a estruturação de clínicas primárias híbridas reduzem o absenteísmo, otimizam a gestão de sinistros de planos corporativos e entregam acesso básico e especializado de forma imediata.",
+        "where": "Municípios com população superior a 15.000 habitantes e com densidade médica crítica inferior a 0.5 médicos por mil habitantes.",
+        "js_filter": "row.medicos_por_mil < 0.5 && row.populacao > 15000"
+    },
+    {
+        "slug": "oportunidade-oncologia",
+        "title": "Expansão Oncologia e Diálise",
+        "emoji": "🧬",
+        "badge_text": "Oportunidade Geral",
+        "badge_class": "badge-general",
+        "why": "Procedimentos ambulatoriais de alta complexidade em oncologia e diálise (faturados via APAC) apresentam forte recorrência e margens consistentes tanto no SUS quanto na saúde privada. A identificação de cidades polo com altos índices de procedimentos per capita, mas que não possuem leitos de alta complexidade ou hospitais especializados locais, sinaliza pontos ideais para abertura ou expansão de novos centros integrados.",
+        "where": "Cidades com faturamento de procedimentos de diálise superior a 1.5 por mil habitantes ou faturamento oncológico superior a 1.0 por mil habitantes e que não possuem hospitais de especialidade locais.",
+        "js_filter": "row.apac_dialise_por_mil > 1.5 || row.apac_onco_por_mil > 1.0"
+    },
+    {
+        "slug": "oportunidade-enfermagem",
+        "title": "Outsourcing de Enfermagem",
+        "emoji": "🧑‍⚕️",
+        "badge_text": "Oportunidade Geral",
+        "badge_class": "badge-general",
+        "why": "Hospitais gerais ativos, com alto volume de internações anuais, que se localizam em regiões com escassez severa de profissionais de enfermagem (< 1.0/mil hab) enfrentam altos custos com horas extras, fadiga de pessoal e turnover elevado. Empresas de recrutamento especializado, capacitação e outsourcing encontram nestes estabelecimentos parceiros corporativos com alta urgência de contratação.",
+        "where": "Municípios com atividade de internação significativa (>50 internações por mil habitantes/ano) e densidade de enfermeiros inferior a 1.0 por mil habitantes.",
+        "js_filter": "row.enfermeiros_por_mil < 1.0 && row.internacoes_por_mil > 50"
+    },
+    {
+        "slug": "oportunidade-planos",
+        "title": "Venda de Planos de Saúde B2B",
+        "emoji": "💎",
+        "badge_text": "Oportunidade Geral",
+        "badge_class": "badge-general",
+        "why": "Municípios ricos com forte atividade agrícola, industrial ou comercial (PIB per capita elevado) que apresentam baixa penetração de planos de saúde privados (<10%) são oceanos azuis comerciais. Corretoras de seguros e operadoras de saúde que realizarem prospecção ativa de planos corporativos coletivos e PME (Pequenas e Médias Empresas) encontrarão forte capacidade financeira local associada à carência de cobertura privada.",
+        "where": "Municípios com PIB per capita superior a R$ 35.000 e índice de cobertura de saúde privada de operadoras inferior a 10.0%.",
+        "js_filter": "row.pib_per_capita > 35000 && row.cobertura_privada_pct < 10"
+    },
+    {
+        "slug": "oportunidade-sirio-oncologia",
+        "title": "Sírio - Expansão Oncologia",
+        "emoji": "🎗️",
+        "badge_text": "Sírio-Libanês",
+        "badge_class": "badge-sirio",
+        "why": "A marca premium do Centro de Oncologia Sírio-Libanês busca municípios de alta renda com forte presença de beneficiários de planos de saúde de alto padrão (convênios premium), onde haja demanda local de oncologia faturada pelo SUS, indicando que os pacientes da região precisam se deslocar para capitais para obter o tratamento adequado. Um satélite Sírio nestes locais captura o mercado premium local.",
+        "where": "Cidades polo de alta renda com PIB per capita superior a R$ 40.000, taxa geral de planos de saúde superior a 25% e incidência de procedimentos de quimioterapia/radioterapia superior a 0.8 por mil habitantes.",
+        "js_filter": "row.apac_onco_por_mil > 0.8 && row.cobertura_privada_pct > 25 && row.pib_per_capita > 40000"
+    },
+    {
+        "slug": "oportunidade-sirio-corporativa",
+        "title": "Sírio - Saúde Corporativa B2B",
+        "emoji": "💼",
+        "badge_text": "Sírio-Libanês",
+        "badge_class": "badge-sirio",
+        "why": "Grandes empregadores industriais e cooperativas localizados em desertos médicos são leads excelentes para o portfólio de Atenção Primária Corporativa e Gestão de Saúde Integrada (Telemedicina/Ambulatório In-Company) do Sírio-Libanês. O Sírio assume a saúde básica dessas corporações e reduz a sinistralidade do plano premium deles.",
+        "where": "Municípios ricos (PIBpc > R$ 45.000) classificados como desertos médicos ou com carência severa de médicos generalistas/especialistas (< 1.0 médicos por mil habitantes).",
+        "js_filter": "row.medicos_por_mil < 1.0 && row.pib_per_capita > 45000"
+    },
+    {
+        "slug": "oportunidade-sirio-diagnosticos",
+        "title": "Sírio - Expansão de Diagnósticos",
+        "emoji": "🔬",
+        "badge_text": "Sírio-Libanês",
+        "badge_class": "badge-sirio",
+        "why": "Identificação de praças com população de médio e grande porte, com alta cobertura de convênios médicos premium, mas que possuem déficit de equipamentos de imagem de última geração. Permite à bandeira Sírio Diagnósticos abrir laboratórios próprios, postos de coleta ou firmar parcerias preferenciais locais de alto ticket.",
+        "where": "Cidades populosas com população superior a 40.000 habitantes, mercado premium forte (>30% de planos de saúde) e ausência de tomógrafos de alta capacidade cadastrados no CNES.",
+        "js_filter": "row.populacao > 40000 && row.cobertura_privada_pct > 30 && row.tem_tomografo === false"
+    }
+]
+
+MODAL_HTML = """
+<!-- Modal de Detalhes do Municipio -->
+<div id="muni-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(11,18,32,0.85); z-index:10000; justify-content:center; align-items:center; backdrop-filter:blur(5px)">
+  <div class="card" style="width:90%; max-width:650px; background:var(--card); border:2px solid var(--bd); border-radius:16px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5); max-height:90vh; overflow-y:auto">
+    <button onclick="closeModal()" style="position:absolute; top:16px; right:16px; background:none; border:0; color:var(--mut); font-size:24px; cursor:pointer; line-height:1">&times;</button>
+    <h2 id="modal-title" style="margin-top:0; border-left:4px solid var(--acc2); padding-left:10px; font-size:20px">Nome do Municipio</h2>
+    <p class="sub" id="modal-subtitle">UF | Populacao: 100.000</p>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+      <div>
+        <h3 style="color:var(--acc2); margin:0 0 8px; font-size:14px; border-bottom:1px solid var(--bd); padding-bottom:4px">Mercado e Indices</h3>
+        <table class="modal-grid-tbl">
+          <tr><td style="color:var(--mut)">Indice Oportunidade:</td><td id="m-idx" style="font-weight:bold; text-align:right">85.0</td></tr>
+          <tr><td style="color:var(--mut)">Tier:</td><td id="m-tier" style="font-weight:bold; text-align:right">ALTA</td></tr>
+          <tr><td style="color:var(--mut)">Sweet Spot:</td><td id="m-sweet" style="text-align:right">Sim</td></tr>
+          <tr><td style="color:var(--mut)">PIB per capita:</td><td id="m-pib" style="text-align:right">R$ 45.000</td></tr>
+          <tr><td style="color:var(--mut)">Cobertura Privada:</td><td id="m-cob" style="text-align:right">32%</td></tr>
+        </table>
+      </div>
+      
+      <div>
+        <h3 style="color:var(--acc); margin:0 0 8px; font-size:14px; border-bottom:1px solid var(--bd); padding-bottom:4px">Infraestrutura e Oferta</h3>
+        <table class="modal-grid-tbl">
+          <tr><td style="color:var(--mut)">Medicos / mil hab:</td><td id="m-med" style="text-align:right">1.25</td></tr>
+          <tr><td style="color:var(--mut)">Enfermeiros / mil:</td><td id="m-enf" style="text-align:right">1.80</td></tr>
+          <tr><td style="color:var(--mut)">Tomografo:</td><td id="m-tomo" style="text-align:right">Sim</td></tr>
+          <tr><td style="color:var(--mut)">Leitos SUS / mil:</td><td id="m-leitos" style="text-align:right">2.1</td></tr>
+          <tr><td style="color:var(--mut)">Internacoes / mil:</td><td id="m-intern" style="text-align:right">75.3</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:20px; background:var(--card2); padding:14px; border-radius:10px; border:1px solid var(--bd)">
+      <h3 style="margin:0 0 8px; font-size:13px; color:var(--txt)">Procedimentos de Alta Complexidade (APAC / mil hab)</h3>
+      <div style="display:flex; justify-content:space-between; font-size:13px">
+        <span>Oncologia: <b id="m-onco">0.5</b></span>
+        <span>Dialise: <b id="m-dialise">1.2</b></span>
+        <span>Acesso Leitos: <b id="m-acesso">2.4</b></span>
+      </div>
+    </div>
+    
+    <div style="margin-top:16px; background:rgba(239,95,95,0.06); padding:14px; border-radius:10px; border:1px solid rgba(239,95,95,0.2)">
+      <h3 style="margin:0 0 8px; font-size:13px; color:var(--red)">Indicadores de Mortalidade e Saude</h3>
+      <div style="display:flex; justify-content:space-between; font-size:13px">
+        <span>Obitos Evitaveis: <b id="m-evit" style="color:var(--red)">12.5</b> /mil hab</span>
+        <span>Mortalidade Infantil: <b id="m-inf" style="color:var(--red)">14.2</b> /mil nasc.</span>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
+OPORT_DETAIL_PAGE = """<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - WiNS Hub Saude</title>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/css/tabulator_flathead.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    {{style}}
+    .grid-desc {{ display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 24px; }}
+    @media (max-width: 768px) {{ .grid-desc {{ grid-template-columns: 1fr; }} }}
+    .oport-badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 12px; }}
+    .badge-sirio {{ background: rgba(255,166,87,0.15); color: #ffa657; border: 1px solid #ffa657; }}
+    .badge-general {{ background: rgba(55,215,166,0.15); color: #37d7a6; border: 1px solid #37d7a6; }}
+    .desc-card {{ background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; }}
+    .desc-card h3 {{ margin-top: 0; color: var(--acc2); border-bottom: 1px solid var(--bd); padding-bottom: 8px; font-size: 15px; }}
+    .desc-card p {{ font-size: 13.5px; color: var(--mut); margin-bottom: 0; line-height: 1.6; }}
+  </style>
+</head>
+<body>
+  {{nav}}
+  <div class="wrap">
+    <a href="vender.html" style="text-decoration:none; color:var(--acc2); font-size:13px; font-weight:600; display:inline-block; margin-bottom:12px">&larr; Voltar para Central Comercial</a>
+    
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:12px">
+      <div>
+        <span class="oport-badge {{badge_class}}">{{badge_text}}</span>
+        <h1 style="margin:0; font-size:26px">{{emoji}} {{title}}</h1>
+        <p class="sub" style="margin:4px 0 0 0">Tese de negocio, analise territorial e leads estruturados para prospecao B2B.</p>
+      </div>
+      <div class="kpi-mini"><div class="v" id="count-muni">-</div><div class="l">Municipios Mapeados</div></div>
+    </div>
+    
+    <div class="grid-desc">
+      <div class="desc-card">
+        <h3>💡 Por que e uma Oportunidade comercial?</h3>
+        <p>{{why}}</p>
+        <h3 style="margin-top:20px; color:var(--acc)">📍 Onde se aplica (Criterios de Filtro)</h3>
+        <p>{{where}}</p>
+      </div>
+      <div class="desc-card" style="display:flex; flex-direction:column; align-items:stretch">
+        <h3>📊 Top 7 Estados com maior volume de leads</h3>
+        <div style="flex-grow:1; min-height:180px; position:relative">
+          <canvas id="state-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <h2>🔍 Lista de Oportunidades e Leads Corporativos Mapeados</h2>
+    <div class="toolbar">
+      <input id="search" placeholder="Buscar municipio..." style="min-width:260px">
+      <button class="alt" onclick="table.download('csv','leads_{{slug}}.csv',{{bom:true}})">Exportar CSV</button>
+      <button class="alt" onclick="table.download('xlsx','leads_{{slug}}.xlsx',{{sheetName:'Leads'}})">Exportar Excel</button>
+      <span class="pill" id="table-count">Carregando...</span>
+    </div>
+    <div id="tbl"></div>
+  </div>
+  
+  {{modal}}
+  
+  <script>
+    const ptInt=c=>{{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{{maximumFractionDigits:0}});}};
+    const ptDec=d=>c=>{{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{{minimumFractionDigits:d,maximumFractionDigits:d}});}};
+    function tierFmt(c){{const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}}
+    function fmt(n){{return n==null?'-':Number(n).toLocaleString('pt-BR');}}
+    
+    let table, DATA=[], fuse=null;
+    const cols=[
+      {{title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:160,widthGrow:3}},
+      {{title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{{valuesLookup:true,clearable:true}},hozAlign:"center",width:70}},
+      {{title:"Populacao",field:"populacao",sorter:"number",hozAlign:"right",formatter:ptInt,width:100}},
+      {{title:"Indice",field:"indice_oportunidade",sorter:"number",formatter:"progress",formatterParams:{{color:["#ef5f5f", "#f6a443", "#37d7a6"], min:0, max:100, legend:true}},width:115}},
+      {{title:"Tier",field:"tier",headerFilter:"list",headerFilterParams:{{values:["","ALTA","MEDIA","BAIXA"]}},formatter:tierFmt,hozAlign:"center",width:90}},
+      {{title:"Med/mil",field:"medicos_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90}},
+      {{title:"Enf/mil",field:"enfermeiros_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90}},
+      {{title:"Cob.%",field:"cobertura_privada_pct",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:90}},
+      {{title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:95}},
+      {{title:"Tomografo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:95,headerFilter:"tickCross",headerFilterParams:{{tristate:true}}}},
+      {{title:"Sweet",field:"sweet_spot",formatter:"tickCross",hozAlign:"center",width:80,headerFilter:"tickCross",headerFilterParams:{{tristate:true}}}},
+    ];
+    
+    fetch('oportunidade.json').then(r=>r.json()).then(res=>{{
+      const allData=res.data.map(row=>{{
+        let obj={{}};
+        res.columns.forEach((col,idx)=>{{obj[col]=row[idx];}});
+        return obj;
+      }});
+      
+      const filtered = allData.filter(row => {{
+        return {js_filter};
+      }});
+      
+      DATA = filtered;
+      document.getElementById('count-muni').textContent = fmt(filtered.length);
+      document.getElementById('table-count').textContent = fmt(filtered.length) + ' municipios';
+      
+      renderChart(filtered);
+      
+      fuse=new Fuse(filtered,{{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true}});
+      
+      table=new Tabulator('#tbl',{{
+        data:filtered, layout:'fitColumns', responsiveLayout:'collapse', height:'550px',
+        pagination:true, paginationSize:50, paginationSizeSelector:[25,50,100,250],
+        movableColumns:true, columnDefaults:{{headerTooltip:true}},
+        initialSort:[{{column:'indice_oportunidade',dir:'desc'}}], columns:cols,
+        rowClick:function(e, row){{
+          openModal(row.getData());
+        }}
+      }});
+      
+      const upd=()=>{{document.getElementById('table-count').textContent=table.getDataCount('active')+' municipios';}};
+      table.on('tableBuilt',upd); table.on('dataFiltered',upd);
+      
+      document.getElementById('search').addEventListener('input',e=>{{
+        const q=e.target.value.trim();
+        if(!q){{table.clearFilter(true);return;}}
+        const hits=new Set(fuse.search(q).map(h=>h.item.municipio_cod));
+        table.setFilter(row=>hits.has(row.municipio_cod));
+      }});
+    }}).catch(e=>{{
+      document.getElementById('tbl').textContent='Falha ao carregar dados: '+e;
+    }});
+    
+    function renderChart(data) {{
+      const byUf = {{}};
+      data.forEach(r => {{ byUf[r.uf] = (byUf[r.uf] || 0) + 1; }});
+      const sorted = Object.entries(byUf).sort((a,b)=>b[1]-a[1]).slice(0, 7);
+      
+      const labels = sorted.map(x => x[0]);
+      const values = sorted.map(x => x[1]);
+      
+      Chart.defaults.color='#8aa0c0';
+      new Chart(document.getElementById('state-chart'), {{
+        type: 'bar',
+        data: {{
+          labels: labels,
+          datasets: [{{
+            data: values,
+            backgroundColor: '#37d7a6',
+            borderColor: '#37d7a6',
+            borderRadius: 4,
+            borderWidth: 0
+          }}]
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {{
+            legend: {{ display: false }},
+            tooltip: {{ enabled: true }}
+          }},
+          scales: {{
+            x: {{ grid: {{ color: '#22304d' }} }},
+            y: {{ grid: {{ display: false }} }}
+          }}
+        }}
+      }});
+    }}
+  </script>
+</body>
+</html>
+"""
+
 # Analytics GoatCounter (gratis) - ativo.
 ANALYTICS = """<script data-goatcounter="https://william.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>"""
 
@@ -637,7 +942,31 @@ def gerar_mapa():
     print(f"  mapa.html: {len(html)/1024:.0f} KB (Leaflet coropletico)")
 
 
-PAGINAS = ["index.html", "oportunidade.html", "mapa.html", "vender.html"]
+PAGINAS = ["index.html", "oportunidade.html", "mapa.html", "vender.html"] + [f"{o['slug']}.html" for o in OPORTUNIDADES_METADATA]
+
+
+def gerar_oportunidades_detalhadas():
+    print("  Gerando paginas de oportunidades detalhadas ...")
+    for o in OPORTUNIDADES_METADATA:
+        # substitui as variáveis no template
+        html = OPORT_DETAIL_PAGE.format(
+            title=o["title"],
+            emoji=o["emoji"],
+            badge_text=o["badge_text"],
+            badge_class=o["badge_class"],
+            why=o["why"],
+            where=o["where"],
+            js_filter=o["js_filter"],
+            slug=o["slug"],
+            style=STYLE,
+            nav=NAV,
+            modal=MODAL_HTML
+        )
+        html = inject_head(html, o["title"], f"{o['slug']}.html")
+        filename = os.path.join(DOCS, f"{o['slug']}.html")
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(minify(html))
+        print(f"    -> {o['slug']}.html gerado.")
 
 
 def gerar_seo():
@@ -678,5 +1007,6 @@ if __name__ == "__main__":
     gerar_oportunidade()
     gerar_mapa()
     gerar_vender()
+    gerar_oportunidades_detalhadas()
     gerar_seo()
     print("OK. Publique com: git add -A && git commit -m 'site' && git push")

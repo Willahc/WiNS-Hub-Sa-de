@@ -204,7 +204,92 @@ VENDER = [
 
 
 def vender_body():
-    h = ['<h1>Para quem vender</h1><p class=sub>Dois produtos, compradores diferentes. Marque o que validar &mdash; fica salvo neste navegador.</p>']
+    h = ['<h1>Central Comercial - WiNS Hub Saúde</h1><p class=sub>Estratégia de vendas, teses de oportunidades territoriais e leads segmentados.</p>']
+    
+    # Grid de Oportunidades Mapeadas
+    h.append("""
+    <h2 style="margin-top:0;color:var(--acc)">🔍 Oportunidades e Teses de Negócios Mapeadas</h2>
+    <p class="sub">Selecione uma oportunidade abaixo para acessar a tese detalhada, gráficos estaduais e a base de leads segmentada.</p>
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px; margin-bottom:40px">
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0">
+        <div>
+          <span class="pill" style="background:rgba(55,215,166,0.1); color:var(--acc); border-color:rgba(55,215,166,0.2)">Oportunidade Geral</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px">🏥 1. Equipamentos Diagnósticos</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Hospitais e clínicas privadas em cidades ricas de médio/grande porte sem tomógrafos locais.</p>
+        </div>
+        <a href="oportunidade-equipamentos.html" style="text-decoration:none; background:var(--acc2); color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Oportunidade &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0">
+        <div>
+          <span class="pill" style="background:rgba(55,215,166,0.1); color:var(--acc); border-color:rgba(55,215,166,0.2)">Oportunidade Geral</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px">📞 2. Telemedicina Corporativa</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Prospecção de clínicas e empresas em cidades classificadas como desertos médicos.</p>
+        </div>
+        <a href="oportunidade-telemedicina.html" style="text-decoration:none; background:var(--acc2); color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Oportunidade &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0">
+        <div>
+          <span class="pill" style="background:rgba(55,215,166,0.1); color:var(--acc); border-color:rgba(55,215,166,0.2)">Oportunidade Geral</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px">🧬 3. Expansão Oncologia e Diálise</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Municípios polos com alta demanda de quimio/diálise pelo SUS mas sem clínicas locais.</p>
+        </div>
+        <a href="oportunidade-oncologia.html" style="text-decoration:none; background:var(--acc2); color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Oportunidade &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0">
+        <div>
+          <span class="pill" style="background:rgba(55,215,166,0.1); color:var(--acc); border-color:rgba(55,215,166,0.2)">Oportunidade Geral</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px">🧑‍⚕️ 4. Outsourcing Enfermagem</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Hospitais de grande movimento cirúrgico/internações em desertos de profissionais de enfermagem.</p>
+        </div>
+        <a href="oportunidade-enfermagem.html" style="text-decoration:none; background:var(--acc2); color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Oportunidade &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0">
+        <div>
+          <span class="pill" style="background:rgba(55,215,166,0.1); color:var(--acc); border-color:rgba(55,215,166,0.2)">Oportunidade Geral</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px">💎 5. Planos de Saúde B2B</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Municípios ricos (PIB > 35k) com baixíssima cobertura privada de planos de saúde (<10%).</p>
+        </div>
+        <a href="oportunidade-planos.html" style="text-decoration:none; background:var(--acc2); color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Oportunidade &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0; border-color:#ffa657">
+        <div>
+          <span class="pill" style="background:rgba(255,166,87,0.1); color:#ffa657; border-color:rgba(255,166,87,0.2)">Sírio-Libanês</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px; color:#ffa657">🎗️ Sírio - Oncologia Expansão</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Cidades polos de alto PIBpc com alta taxa de convênios premium para expansão física.</p>
+        </div>
+        <a href="oportunidade-sirio-oncologia.html" style="text-decoration:none; background:#ffa657; color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Sírio &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0; border-color:#ffa657">
+        <div>
+          <span class="pill" style="background:rgba(255,166,87,0.1); color:#ffa657; border-color:rgba(255,166,87,0.2)">Sírio-Libanês</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px; color:#ffa657">💼 Sírio - Saúde Corporativa</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Prospecção de grandes corporações instaladas em desertos de médicos.</p>
+        </div>
+        <a href="oportunidade-sirio-corporativa.html" style="text-decoration:none; background:#ffa657; color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Sírio &rarr;</a>
+      </div>
+      
+      <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin-bottom:0; border-color:#ffa657">
+        <div>
+          <span class="pill" style="background:rgba(255,166,87,0.1); color:#ffa657; border-color:rgba(255,166,87,0.2)">Sírio-Libanês</span>
+          <h3 style="margin:10px 0 6px 0; font-size:16px; color:#ffa657">🔬 Sírio - Diagnósticos</h3>
+          <p style="font-size:13px; color:var(--mut); margin:0 0 16px 0">Cidades populosas com forte mercado privado, mas sem tomógrafo cadastrado.</p>
+        </div>
+        <a href="oportunidade-sirio-diagnosticos.html" style="text-decoration:none; background:#ffa657; color:#06101f; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; text-align:center; display:block">Explorar Sírio &rarr;</a>
+      </div>
+    </div>
+    
+    <hr style="border:0; border-top:1px solid var(--bd); margin:40px 0">
+    
+    <h2 style="color:var(--acc)">👥 Segmentos de Compradores B2B (Validação)</h2>
+    <p class="sub">Dois produtos, compradores diferentes. Marque o que validar &mdash; fica salvo neste navegador.</p>
+    """)
     for i, g in enumerate(VENDER):
         h.append(f'<h2>{g["grupo"]}</h2><p class=sub>{g["desc"]}</p><div class=seg>')
         for j, a in enumerate(g["alvos"]):
