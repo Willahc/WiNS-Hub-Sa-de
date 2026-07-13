@@ -42,6 +42,10 @@ a{color:var(--acc2)}
 .kpi-mini{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
 .kpi-mini .v{font-size:20px;font-weight:700}.kpi-mini .l{color:var(--mut);font-size:12px}
 .tabulator{background:var(--card);border:1px solid var(--bd);border-radius:12px;font-size:13px}
+.opportunity-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid var(--bd);padding-bottom:16px}
+.tab-btn{background:var(--card2);border:1px solid var(--bd);color:var(--mut);padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;transition:0.2s}
+.tab-btn:hover{background:var(--card);color:var(--txt)}
+.tab-btn.active{background:var(--acc2);color:#06101f;border-color:var(--acc2)}
 </style><link rel="icon" href="wins-logo.png">
 <meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
 <meta property="og:type" content="website">
@@ -81,6 +85,15 @@ a{color:var(--acc2)}
     <input type="text" name="empresa" placeholder="Empresa">
     <button type="submit">Quero acesso</button>
   </form>
+</div>
+<h2 style="margin-top:24px;color:var(--acc)">Filtrar Oportunidades de Negócios B2B</h2>
+<div class="opportunity-tabs">
+  <button id="tab-all" class="tab-btn active" onclick="filterTab('all')">Todos os Municípios</button>
+  <button id="tab-medtech" class="tab-btn" onclick="filterTab('medtech')">🏥 1. Equipamentos Diagnósticos</button>
+  <button id="tab-telemed" class="tab-btn" onclick="filterTab('telemed')">📞 2. Telemedicina Corporativa</button>
+  <button id="tab-oncology" class="tab-btn" onclick="filterTab('oncology')">🧬 3. Expansão Oncologia/Diálise</button>
+  <button id="tab-staffing" class="tab-btn" onclick="filterTab('staffing')">🧑‍⚕️ 4. Outsourcing Enfermagem</button>
+  <button id="tab-insurance" class="tab-btn" onclick="filterTab('insurance')">💎 5. Planos de Saúde B2B</button>
 </div>
 <div class=toolbar>
   <input id=search placeholder="Buscar municipio (tolerante a erro)..." style="min-width:260px">
@@ -180,5 +193,47 @@ fetch('oportunidade.json').then(r=>r.json()).then(res=>{
     table.setFilter(row=>hits.has(row.municipio_cod));
   });
 }).catch(e=>{document.getElementById('tbl').textContent='Falha ao carregar oportunidade.json: '+e;});
+
+function filterTab(mode) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('tab-' + mode).classList.add('active');
+  
+  if (!table) return;
+  table.clearFilter();
+  
+  if (mode === 'all') {
+    // Sem filtro
+  } else if (mode === 'medtech') {
+    // Equipamentos Diagnósticos: tem_tomografo === false && populacao > 25000 && cobertura_privada_pct > 15
+    table.setFilter([
+      {field: "tem_tomografo", type: "==", value: false},
+      {field: "populacao", type: ">", value: 25000},
+      {field: "cobertura_privada_pct", type: ">", value: 15}
+    ]);
+  } else if (mode === 'telemed') {
+    // Telemedicina Corporativa: medicos_por_mil < 0.5 && populacao > 15000
+    table.setFilter([
+      {field: "medicos_por_mil", type: "<", value: 0.5},
+      {field: "populacao", type: ">", value: 15000}
+    ]);
+  } else if (mode === 'oncology') {
+    // Expansão Oncologia/Diálise: apac_dialise_por_mil > 1.5 ou apac_onco_por_mil > 1.0
+    table.setFilter(row => {
+      return (row.apac_dialise_por_mil > 1.5) || (row.apac_onco_por_mil > 1.0);
+    });
+  } else if (mode === 'staffing') {
+    // Outsourcing Enfermagem: enfermeiros_por_mil < 1.0 && internacoes_por_mil > 50
+    table.setFilter([
+      {field: "enfermeiros_por_mil", type: "<", value: 1.0},
+      {field: "internacoes_por_mil", type: ">", value: 50}
+    ]);
+  } else if (mode === 'insurance') {
+    // Planos de Saúde B2B: pib_per_capita > 35000 && cobertura_privada_pct < 10
+    table.setFilter([
+      {field: "pib_per_capita", type: ">", value: 35000},
+      {field: "cobertura_privada_pct", type: "<", value: 10}
+    ]);
+  }
+}
 </script>
 </body></html>
