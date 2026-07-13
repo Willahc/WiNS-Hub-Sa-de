@@ -1544,13 +1544,7 @@ def gerar_login():
       text-align: left;
     }
     
-    .credential-hint {
-      margin-top: 20px;
-      font-size: 11px;
-      color: var(--mut);
-      border-top: 1px solid rgba(34, 48, 77, 0.4);
-      padding-top: 12px;
-    }
+
   </style>
 </head>
 <body>
@@ -1577,10 +1571,7 @@ def gerar_login():
         <button type="submit" class="login-btn">Entrar</button>
       </form>
       
-      <div class="credential-hint">
-        💡 Credenciais padrão de acesso:<br>
-        Usuário: <b>sirio</b> | Senha: <b>sirio2026</b>
-      </div>
+
     </div>
   </div>
   
@@ -1590,7 +1581,7 @@ def gerar_login():
       var user = document.getElementById('username').value.trim();
       var pass = document.getElementById('password').value.trim();
       
-      if (user === 'sirio' && pass === 'sirio2026') {
+      if (user === 'williamvnvn@gmail.com' && pass === 'Gut$Ber$erk191924') {
         localStorage.setItem('wins_auth', 'true');
         window.location.href = 'index.html';
       } else {
