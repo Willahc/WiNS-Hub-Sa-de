@@ -44,6 +44,9 @@ a{color:var(--acc2)}
     .desc-card p { font-size: 13.5px; color: var(--mut); margin-bottom: 0; line-height: 1.6; }
     .modal-grid-tbl { width: 100%; border-collapse: collapse; }
     .modal-grid-tbl td { border: 0 !important; padding: 6px 0 !important; font-size: 13px !important; text-align: left !important; }
+    input[type=range] { -webkit-appearance: none; width: 100%; background: var(--card2); border: 1px solid var(--bd); height: 6px; border-radius: 3px; outline: none; margin: 8px 0; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #ffa657; cursor: pointer; transition: background .15s; }
+    input[type=range]::-webkit-slider-thumb:hover { background: #ffbe82; }
   </style>
 <link rel="icon" href="wins-logo.png">
 <meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
@@ -89,6 +92,20 @@ a{color:var(--acc2)}
         <h3>📊 Top 7 Estados com maior volume de leads</h3>
         <div style="flex-grow:1; min-height:180px; position:relative">
           <canvas id="state-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div id="roi-card" class="desc-card" style="display:none; margin-top:20px; border-color:#ffa657; background:linear-gradient(180deg,#1b253c,#131c30)">
+      <h3 id="roi-title" style="color:#ffa657; border-bottom:1px solid rgba(255,166,87,0.2); margin-bottom:12px">🧮 Simulação de ROI</h3>
+      <p style="font-size:12.5px; color:var(--mut); margin-bottom:16px">Selecione um município na tabela abaixo para simular com dados reais da praça. Ajuste as premissas:</p>
+      
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:24px" id="roi-inputs">
+      </div>
+      
+      <div style="margin-top:20px; padding:16px; background:rgba(255,166,87,0.05); border-radius:10px; border:1px solid rgba(255,166,87,0.15)">
+        <h4 style="margin:0 0 10px; font-size:13px; color:#ffa657">Resultados da Simulação (<span id="roi-selected-city">Nenhum município selecionado</span>)</h4>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; font-size:13px" id="roi-results">
         </div>
       </div>
     </div>
@@ -201,7 +218,10 @@ a{color:var(--acc2)}
         movableColumns:true, columnDefaults:{headerTooltip:true},
         initialSort:[{column:'indice_oportunidade',dir:'desc'}], columns:cols,
         rowClick:function(e, row){
-          openModal(row.getData());
+          const rdata = row.getData();
+          openModal(rdata);
+          selectedMuniData = rdata;
+          if (typeof calcROI === "function") calcROI();
         }
       });
       
@@ -287,6 +307,167 @@ a{color:var(--acc2)}
           }
         }
       });
+    }
+    
+    const SLUG = "oportunidade-consultorias";
+    let selectedMuniData = null;
+    
+    if (SLUG.includes("sirio")) {
+      document.getElementById("roi-card").style.display = "block";
+      initROICalculator();
+    }
+    
+    function initROICalculator() {
+      const inputs = document.getElementById("roi-inputs");
+      if (SLUG === "oportunidade-sirio-oncologia") {
+        document.getElementById("roi-title").textContent = "🧮 Simulação de ROI — Expansão Oncológica Sírio-Libanês";
+        inputs.innerHTML = `
+          <div>
+            <label style="font-size:12px; color:var(--mut)">CAPEX Inicial: <b id="lbl-capex" style="color:#ffa657">R$ 8,0 M</b></label>
+            <input type="range" id="val-capex" min="3000000" max="20000000" step="500000" value="8000000" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Ticket Médio Anual/Paciente: <b id="lbl-ticket" style="color:#ffa657">R$ 50.000</b></label>
+            <input type="range" id="val-ticket" min="20000" max="100000" step="2000" value="50000" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Market Share Sírio: <b id="lbl-share" style="color:#ffa657">15%</b></label>
+            <input type="range" id="val-share" min="5" max="50" step="1" value="15" oninput="calcROI()">
+          </div>
+        `;
+      } else if (SLUG === "oportunidade-sirio-corporativa") {
+        document.getElementById("roi-title").textContent = "🧮 Simulação de ROI — Saúde Corporativa Sírio-Libanês";
+        inputs.innerHTML = `
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Mensalidade/Funcionário: <b id="lbl-mensal" style="color:#ffa657">R$ 45</b></label>
+            <input type="range" id="val-mensal" min="20" max="150" step="5" value="45" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Custo Plano/Funcionário/ano: <b id="lbl-plano" style="color:#ffa657">R$ 4.800</b></label>
+            <input type="range" id="val-plano" min="2000" max="12000" step="200" value="4800" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Redução Sinistralidade: <b id="lbl-sinist" style="color:#ffa657">18%</b></label>
+            <input type="range" id="val-sinist" min="5" max="30" step="1" value="18" oninput="calcROI()">
+          </div>
+        `;
+      } else if (SLUG === "oportunidade-sirio-diagnosticos") {
+        document.getElementById("roi-title").textContent = "🧮 Simulação de ROI — Sírio Diagnósticos (Imagem)";
+        inputs.innerHTML = `
+          <div>
+            <label style="font-size:12px; color:var(--mut)">CAPEX Inicial: <b id="lbl-capex" style="color:#ffa657">R$ 5,0 M</b></label>
+            <input type="range" id="val-capex" min="1500000" max="10000000" step="250000" value="5000000" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Ticket Médio Exame: <b id="lbl-ticket" style="color:#ffa657">R$ 900</b></label>
+            <input type="range" id="val-ticket" min="400" max="2500" step="50" value="900" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Taxa Exame per capita/ano: <b id="lbl-taxa" style="color:#ffa657">0.15</b></label>
+            <input type="range" id="val-taxa" min="0.05" max="0.40" step="0.01" value="0.15" oninput="calcROI()">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--mut)">Market Share Sírio: <b id="lbl-share" style="color:#ffa657">20%</b></label>
+            <input type="range" id="val-share" min="5" max="50" step="1" value="20" oninput="calcROI()">
+          </div>
+        `;
+      }
+      calcROI();
+    }
+    
+    function calcROI() {
+      if (!SLUG.includes("sirio")) return;
+      
+      const cityLabel = document.getElementById("roi-selected-city");
+      const results = document.getElementById("roi-results");
+      
+      let pop = 100000;
+      let cob = 30;
+      let onco = 1.2;
+      
+      if (selectedMuniData) {
+        cityLabel.textContent = selectedMuniData.municipio_nome + " - " + selectedMuniData.uf;
+        pop = selectedMuniData.populacao;
+        cob = selectedMuniData.cobertura_privada_pct || 15;
+        onco = selectedMuniData.apac_onco_por_mil || 0.8;
+      } else {
+        cityLabel.textContent = "Simulação Padrão (Selecione um município abaixo)";
+      }
+      
+      const popPrivada = pop * (cob / 100);
+      
+      if (SLUG === "oportunidade-sirio-oncologia") {
+        const capex = Number(document.getElementById("val-capex").value);
+        const ticket = Number(document.getElementById("val-ticket").value);
+        const share = Number(document.getElementById("val-share").value);
+        
+        document.getElementById("lbl-capex").textContent = "R$ " + (capex / 1000000).toFixed(1) + " M";
+        document.getElementById("lbl-ticket").textContent = "R$ " + fmt(ticket);
+        document.getElementById("lbl-share").textContent = share + "%";
+        
+        const casos = popPrivada * (onco / 1000) * 1.2;
+        const pacientes = casos * (share / 100);
+        const receita = pacientes * ticket;
+        const ebitda = receita * 0.25; 
+        const roi = capex > 0 ? (ebitda / capex) * 100 : 0;
+        const payback = ebitda > 0 ? capex / ebitda : 0;
+        
+        results.innerHTML = `
+          <div><div style="color:var(--mut)">Pacientes Anuais:</div><b style="font-size:16px; color:#ffa657">{Math.round(pacientes)}</b></div>
+          <div><div style="color:var(--mut)">Faturamento/ano:</div><b style="font-size:16px; color:var(--acc)">R$ {((receita/1000000)).toFixed(2)}M</b></div>
+          <div><div style="color:var(--mut)">EBITDA/ano (25%):</div><b style="font-size:16px; color:var(--acc)">R$ {((ebitda/1000000)).toFixed(2)}M</b></div>
+          <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">{roi.toFixed(1)}%</b></div>
+          <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">{payback > 0 ? payback.toFixed(1) + ' anos' : '-'}</b></div>
+        `;
+      } else if (SLUG === "oportunidade-sirio-corporativa") {
+        const mensal = Number(document.getElementById("val-mensal").value);
+        const plano = Number(document.getElementById("val-plano").value);
+        const sinist = Number(document.getElementById("val-sinist").value);
+        
+        document.getElementById("lbl-mensal").textContent = "R$ " + mensal;
+        document.getElementById("lbl-plano").textContent = "R$ " + fmt(plano);
+        document.getElementById("lbl-sinist").textContent = sinist + "%";
+        
+        const custoAnualSirio = mensal * 12;
+        const economiaPlano = plano * (sinist / 100);
+        const economiaAbsenteismo = 250; 
+        const economiaTotal = economiaPlano + economiaAbsenteismo;
+        const retornoLiquido = economiaTotal - custoAnualSirio;
+        const roi = custoAnualSirio > 0 ? (retornoLiquido / custoAnualSirio) * 100 : 0;
+        
+        results.innerHTML = `
+          <div><div style="color:var(--mut)">Economia Anual/Vida:</div><b style="font-size:16px; color:var(--acc)">R$ ${Math.round(economiaTotal)}</b></div>
+          <div><div style="color:var(--mut)">Custo Sírio/Vida:</div><b style="font-size:16px; color:var(--mut)">R$ ${Math.round(custoAnualSirio)}</b></div>
+          <div><div style="color:var(--mut)">Retorno Líquido/Vida:</div><b style="font-size:16px; color:var(--acc)">R$ ${Math.round(retornoLiquido)}</b></div>
+          <div><div style="color:var(--mut)">ROI Contratante:</div><b style="font-size:16px; color:#ffa657">${roi.toFixed(1)}%</b></div>
+          <div><div style="color:var(--mut)">Público Alvo (Cidade):</div><b style="font-size:15px; color:var(--txt)">${fmt(pop)} hab</b></div>
+        `;
+      } else if (SLUG === "oportunidade-sirio-diagnosticos") {
+        const capex = Number(document.getElementById("val-capex").value);
+        const ticket = Number(document.getElementById("val-ticket").value);
+        const taxa = Number(document.getElementById("val-taxa").value);
+        const share = Number(document.getElementById("val-share").value);
+        
+        document.getElementById("lbl-capex").textContent = "R$ " + (capex / 1000000).toFixed(2) + " M";
+        document.getElementById("lbl-ticket").textContent = "R$ " + ticket;
+        document.getElementById("lbl-taxa").textContent = taxa.toFixed(2);
+        document.getElementById("lbl-share").textContent = share + "%";
+        
+        const examesCidade = popPrivada * taxa;
+        const examesSirio = examesCidade * (share / 100);
+        const receita = examesSirio * ticket;
+        const ebitda = receita * 0.30; 
+        const roi = capex > 0 ? (ebitda / capex) * 100 : 0;
+        const payback = ebitda > 0 ? capex / ebitda : 0;
+        
+        results.innerHTML = `
+          <div><div style="color:var(--mut)">Exames Sírio/ano:</div><b style="font-size:16px; color:#ffa657">${Math.round(examesSirio)}</b></div>
+          <div><div style="color:var(--mut)">Receita Anual:</div><b style="font-size:16px; color:var(--acc)">R$ ${((receita/1000000)).toFixed(2)}M</b></div>
+          <div><div style="color:var(--mut)">EBITDA/ano (30%):</div><b style="font-size:16px; color:var(--acc)">R$ ${((ebitda/1000000)).toFixed(2)}M</b></div>
+          <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">${roi.toFixed(1)}%</b></div>
+          <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">${payback > 0 ? payback.toFixed(1) + ' anos' : '-'}</b></div>
+        `;
+      }
     }
   </script>
 </body>
