@@ -34,7 +34,12 @@ a{color:var(--acc2)}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px}
 .leaflet-popup-content{font:13px sans-serif}
 button.on{outline:2px solid var(--acc)}
-</style><link rel="icon" href="wins-logo.png">
+</style><script>
+  if (localStorage.getItem('wins_auth') !== 'true') {
+    window.location.href = 'login.html';
+  }
+</script>
+<link rel="icon" href="wins-logo.png">
 <meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Mapa de Oportunidade - WiNS Hub Saude">

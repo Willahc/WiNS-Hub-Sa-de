@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso Restrito - WiNS Hub Saude</title>
+  <link rel="icon" href="wins-logo.png">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: rgba(19, 28, 48, 0.6);
+      --txt: #e6edf7;
+      --mut: #8aa0c0;
+      --acc: #ffa657; 
+      --acc-glow: rgba(255, 166, 87, 0.4);
+      --bd: rgba(34, 48, 77, 0.7);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--txt);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    body::before, body::after {
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 166, 87, 0.15) 0%, rgba(79, 156, 249, 0.05) 70%, transparent 100%);
+      filter: blur(80px);
+      z-index: 1;
+      animation: float 15s infinite alternate;
+    }
+    body::before { top: 10%; left: 10%; }
+    body::after { bottom: 10%; right: 10%; animation-delay: -5s; }
+    
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 30px) scale(1.1); }
+    }
+    
+    .login-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
+    
+    .login-card {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--bd);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    
+    .logo-container {
+      margin-bottom: 20px;
+    }
+    
+    .logo-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      margin-bottom: 12px;
+    }
+    
+    h1 {
+      font-size: 20px;
+      margin: 0 0 6px 0;
+      font-weight: 700;
+      color: #fff;
+    }
+    
+    .subtitle {
+      font-size: 13px;
+      color: var(--mut);
+      margin-bottom: 24px;
+    }
+    
+    .form-group {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mut);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    input {
+      width: 100%;
+      background: rgba(26, 39, 64, 0.5);
+      border: 1px solid var(--bd);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    
+    input:focus {
+      border-color: var(--acc);
+      box-shadow: 0 0 0 3px var(--acc-glow);
+      background: rgba(26, 39, 64, 0.8);
+    }
+    
+    .login-btn {
+      width: 100%;
+      background: var(--acc);
+      color: #06101f;
+      border: none;
+      border-radius: 8px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+      box-shadow: 0 4px 12px var(--acc-glow);
+    }
+    
+    .login-btn:hover {
+      background: #ffbe82;
+      box-shadow: 0 6px 16px var(--acc-glow);
+    }
+    
+    .error-msg {
+      display: none;
+      background: rgba(239, 95, 95, 0.1);
+      border: 1px solid rgba(239, 95, 95, 0.2);
+      color: #ef5f5f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12.5px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    
+    .credential-hint {
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--mut);
+      border-top: 1px solid rgba(34, 48, 77, 0.4);
+      padding-top: 12px;
+    }
+  </style>
+<link rel="icon" href="wins-logo.png">
+<meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Acesso Restrito - WiNS Hub Saude">
+<meta property="og:description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:image" content="https://willahc.github.io/WiNS-Hub-Sa-de/wins-logo.png">
+<meta property="og:url" content="https://willahc.github.io/WiNS-Hub-Sa-de/login.html">
+<meta name="twitter:card" content="summary_large_image">
+<script data-goatcounter="https://william.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="logo-container">
+        <img class="logo-img" src="wins-logo.png" alt="WiNS Hub Logo">
+        <h1>WiNS Hub Saúde</h1>
+        <div class="subtitle">Acesso Restrito — Inteligência de Saúde</div>
+      </div>
+      
+      <div id="error-msg" class="error-msg"></div>
+      
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" placeholder="Digite seu usuário" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Digite sua senha" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="login-btn">Entrar</button>
+      </form>
+      
+      <div class="credential-hint">
+        💡 Credenciais padrão de acesso:<br>
+        Usuário: <b>sirio</b> | Senha: <b>sirio2026</b>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var user = document.getElementById('username').value.trim();
+      var pass = document.getElementById('password').value.trim();
+      
+      if (user === 'sirio' && pass === 'sirio2026') {
+        localStorage.setItem('wins_auth', 'true');
+        window.location.href = 'index.html';
+      } else {
+        var err = document.getElementById('error-msg');
+        err.textContent = 'Usuário ou senha incorretos.';
+        err.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

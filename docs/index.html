@@ -35,7 +35,12 @@ canvas{max-height:320px}
 .toggle{display:inline-flex;background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:3px;margin:0 0 12px}
 .tg{background:none;border:0;color:var(--mut);padding:7px 18px;border-radius:8px;cursor:pointer;font:600 13px sans-serif}
 .tg.on{background:var(--acc2);color:#06101f}
-</style><link rel="icon" href="wins-logo.png">
+</style><script>
+  if (localStorage.getItem('wins_auth') !== 'true') {
+    window.location.href = 'login.html';
+  }
+</script>
+<link rel="icon" href="wins-logo.png">
 <meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Dashboard - WiNS Hub Saude">
