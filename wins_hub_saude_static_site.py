@@ -329,14 +329,14 @@ OPORT_DETAIL_PAGE = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{title}} - WiNS Hub Saude</title>
+  <title>{title} - WiNS Hub Saude</title>
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/css/tabulator_flathead.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    {{style}}
+    {style}
     .grid-desc {{ display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 24px; }}
     @media (max-width: 768px) {{ .grid-desc {{ grid-template-columns: 1fr; }} }}
     .oport-badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 12px; }}
@@ -348,14 +348,14 @@ OPORT_DETAIL_PAGE = """<!doctype html>
   </style>
 </head>
 <body>
-  {{nav}}
+  {nav}
   <div class="wrap">
-    <a href="vender.html" style="text-decoration:none; color:var(--acc2); font-size:13px; font-weight:600; display:inline-block; margin-bottom:12px">&larr; Voltar para Central Comercial</a>
+    <a href="oportunidades.html" style="text-decoration:none; color:var(--acc2); font-size:13px; font-weight:600; display:inline-block; margin-bottom:12px">&larr; Voltar para Oportunidades</a>
     
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:12px">
       <div>
-        <span class="oport-badge {{badge_class}}">{{badge_text}}</span>
-        <h1 style="margin:0; font-size:26px">{{emoji}} {{title}}</h1>
+        <span class="oport-badge {badge_class}">{badge_text}</span>
+        <h1 style="margin:0; font-size:26px">{emoji} {title}</h1>
         <p class="sub" style="margin:4px 0 0 0">Tese de negocio, analise territorial e leads estruturados para prospecao B2B.</p>
       </div>
       <div class="kpi-mini"><div class="v" id="count-muni">-</div><div class="l">Municipios Mapeados</div></div>
@@ -364,9 +364,9 @@ OPORT_DETAIL_PAGE = """<!doctype html>
     <div class="grid-desc">
       <div class="desc-card">
         <h3>💡 Por que e uma Oportunidade comercial?</h3>
-        <p>{{why}}</p>
+        <p>{why}</p>
         <h3 style="margin-top:20px; color:var(--acc)">📍 Onde se aplica (Criterios de Filtro)</h3>
-        <p>{{where}}</p>
+        <p>{where}</p>
       </div>
       <div class="desc-card" style="display:flex; flex-direction:column; align-items:stretch">
         <h3>📊 Top 7 Estados com maior volume de leads</h3>
@@ -379,14 +379,14 @@ OPORT_DETAIL_PAGE = """<!doctype html>
     <h2>🔍 Lista de Oportunidades e Leads Corporativos Mapeados</h2>
     <div class="toolbar">
       <input id="search" placeholder="Buscar municipio..." style="min-width:260px">
-      <button class="alt" onclick="table.download('csv','leads_{{slug}}.csv',{{bom:true}})">Exportar CSV</button>
-      <button class="alt" onclick="table.download('xlsx','leads_{{slug}}.xlsx',{{sheetName:'Leads'}})">Exportar Excel</button>
+      <button class="alt" onclick="table.download('csv','leads_{slug}.csv',{{bom:true}})">Exportar CSV</button>
+      <button class="alt" onclick="table.download('xlsx','leads_{slug}.xlsx',{{sheetName:'Leads'}})">Exportar Excel</button>
       <span class="pill" id="table-count">Carregando...</span>
     </div>
     <div id="tbl"></div>
   </div>
   
-  {{modal}}
+  {modal}
   
   <script>
     const ptInt=c=>{{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{{maximumFractionDigits:0}});}};
