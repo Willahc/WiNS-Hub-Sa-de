@@ -335,6 +335,7 @@ OPORT_DETAIL_PAGE = """<!doctype html>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     {style}
     .grid-desc {{ display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 24px; }}
@@ -345,6 +346,8 @@ OPORT_DETAIL_PAGE = """<!doctype html>
     .desc-card {{ background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; }}
     .desc-card h3 {{ margin-top: 0; color: var(--acc2); border-bottom: 1px solid var(--bd); padding-bottom: 8px; font-size: 15px; }}
     .desc-card p {{ font-size: 13.5px; color: var(--mut); margin-bottom: 0; line-height: 1.6; }}
+    .modal-grid-tbl {{ width: 100%; border-collapse: collapse; }}
+    .modal-grid-tbl td {{ border: 0 !important; padding: 6px 0 !important; font-size: 13px !important; text-align: left !important; }}
   </style>
 </head>
 <body>
@@ -450,6 +453,40 @@ OPORT_DETAIL_PAGE = """<!doctype html>
     }}).catch(e=>{{
       document.getElementById('tbl').textContent='Falha ao carregar dados: '+e;
     }});
+    
+    function openModal(data) {{
+      document.getElementById('modal-title').textContent = data.municipio_nome;
+      document.getElementById('modal-subtitle').textContent = data.uf + ' | População: ' + fmt(data.populacao);
+      document.getElementById('m-idx').textContent = fmt(data.indice_oportunidade);
+      document.getElementById('m-tier').textContent = data.tier;
+      document.getElementById('m-tier').className = 'tier-' + data.tier;
+      document.getElementById('m-sweet').textContent = data.sweet_spot ? 'Sim 🌟' : 'Não';
+      document.getElementById('m-pib').textContent = data.pib_per_capita != null ? 'R$ ' + fmt(data.pib_per_capita) : '-';
+      document.getElementById('m-cob').textContent = data.cobertura_privada_pct != null ? fmt(data.cobertura_privada_pct) + '%' : '-';
+      document.getElementById('m-med').textContent = data.medicos_por_mil != null ? fmt(data.medicos_por_mil) : '-';
+      document.getElementById('m-enf').textContent = data.enfermeiros_por_mil != null ? fmt(data.enfermeiros_por_mil) : '-';
+      document.getElementById('m-tomo').textContent = data.tem_tomografo ? 'Sim ✅' : 'Não ❌';
+      document.getElementById('m-leitos').textContent = data.leitos_sus_por_mil != null ? fmt(data.leitos_sus_por_mil) : '-';
+      document.getElementById('m-intern').textContent = data.internacoes_por_mil != null ? fmt(data.internacoes_por_mil) : '-';
+      document.getElementById('m-onco').textContent = data.apac_onco_por_mil != null ? fmt(data.apac_onco_por_mil) : '-';
+      document.getElementById('m-dialise').textContent = data.apac_dialise_por_mil != null ? fmt(data.apac_dialise_por_mil) : '-';
+      document.getElementById('m-acesso').textContent = data.acesso_idx != null ? fmt(data.acesso_idx) : '-';
+      document.getElementById('m-evit').textContent = data.evitaveis_por_mil != null ? fmt(data.evitaveis_por_mil) : '-';
+      document.getElementById('m-inf').textContent = data.mortalidade_infantil != null ? fmt(data.mortalidade_infantil) : '-';
+      
+      document.getElementById('muni-modal').style.display = 'flex';
+    }}
+    
+    function closeModal() {{
+      document.getElementById('muni-modal').style.display = 'none';
+    }}
+    
+    window.onclick = function(event) {{
+      const modal = document.getElementById('muni-modal');
+      if (event.target == modal) {{
+        modal.style.display = 'none';
+      }}
+    }}
     
     function renderChart(data) {{
       const byUf = {{}};
