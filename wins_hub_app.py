@@ -16,7 +16,7 @@ import os
 import io
 import csv
 
-from flask import Flask, jsonify, request, Response, render_template_string
+from flask import Flask, jsonify, request, Response, render_template_string, send_from_directory
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -407,6 +407,14 @@ def oportunidades_body():
 @app.route("/oportunidades")
 def oportunidades():
     return render_template_string(PAGE, title="Oportunidades de Negócios B2B", nav=NAV, body=oportunidades_body())
+
+
+@app.route("/<path:filename>")
+def serve_static_docs(filename):
+    docs_dir = os.path.join(app.root_path, "docs")
+    if os.path.exists(os.path.join(docs_dir, filename)):
+        return send_from_directory(docs_dir, filename)
+    return "Not Found", 404
 
 
 if __name__ == "__main__":
