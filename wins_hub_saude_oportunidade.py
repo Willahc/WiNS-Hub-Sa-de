@@ -49,8 +49,10 @@ GRANT ALL ON oportunidade_investimento TO wins_saude;
 """
 
 INSERT = """
-TRUNCATE oportunidade_investimento;
-INSERT INTO oportunidade_investimento
+CREATE TABLE IF NOT EXISTS oportunidade_investimento_stage (LIKE oportunidade_investimento INCLUDING ALL);
+TRUNCATE TABLE oportunidade_investimento_stage;
+
+INSERT INTO oportunidade_investimento_stage
  (municipio_cod,municipio_nome,uf,populacao,medicos_por_mil,enfermeiros_por_mil,
   tem_tomografo,cobertura_privada_pct,beneficiarios,pib_per_capita,pct_idosos,internacoes_por_mil,leitos_sus_por_mil,evitaveis_por_mil,mortalidade_infantil,apac_onco_por_mil,apac_dialise_por_mil,acesso_idx,
   score_carencia,score_demanda,score_mercado,indice_oportunidade,tier,sweet_spot)
@@ -134,9 +136,19 @@ def main():
     print("WiNS Hub Saude - Indice de Oportunidade de Investimento")
     print("=" * 60)
     with conn.cursor() as cur:
+        # Garante a existencia da tabela principal
         cur.execute(DDL)
+        # Calcula e insere na tabela de staging
         cur.execute(INSERT)
+        
+        # Realiza o swap de tabelas de forma segura
+        cur.execute("DROP TABLE IF EXISTS oportunidade_investimento_old CASCADE")
+        cur.execute("ALTER TABLE oportunidade_investimento RENAME TO oportunidade_investimento_old")
+        cur.execute("ALTER TABLE oportunidade_investimento_stage RENAME TO oportunidade_investimento")
+        cur.execute("DROP TABLE oportunidade_investimento_old CASCADE")
+        cur.execute("GRANT ALL ON oportunidade_investimento TO wins_saude")
     conn.commit()
+
 
     with conn.cursor() as cur:
         cur.execute("""SELECT tier, count(*), to_char(sum(populacao),'FM999G999G999'),

@@ -107,8 +107,12 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{att
 Promise.all([
   fetch('oportunidade.json').then(r=>r.json()),
   fetch('municipios_br.topojson').then(r=>r.json())
-]).then(([dados,topo])=>{
-  dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+]).then(([res,topo])=>{
+  res.data.forEach(row=>{
+    let r={};
+    res.columns.forEach((col,idx)=>{r[col]=row[idx];});
+    DMAP.set(String(r.municipio_cod),r);
+  });
   const obj=topo.objects[Object.keys(topo.objects)[0]];
   const geo=topojson.feature(topo,obj);
   layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),

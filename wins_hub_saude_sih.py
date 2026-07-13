@@ -97,6 +97,15 @@ def baixar(uf, ym):
         except Exception:
             _reset()
             time.sleep(2)
+    # Fallback HTTP mirror
+    try:
+        import urllib.request
+        url = f"http://depot.lapren.ens.fr/datasus/SIHSUS/200801_/Dados/{name}"
+        urllib.request.urlretrieve(url, dest)
+        if os.path.exists(dest) and os.path.getsize(dest) > 0:
+            return dest
+    except Exception:
+        pass
     try:
         os.remove(dest)
     except OSError:

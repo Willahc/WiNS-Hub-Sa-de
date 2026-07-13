@@ -157,7 +157,12 @@ function exportPDF(){
     styles:{fontSize:7,cellPadding:2},headStyles:{fillColor:[31,28,48]},alternateRowStyles:{fillColor:[244,246,250]}});
   doc.save('relatorio_oportunidade_wins_hub_saude.pdf');
 }
-fetch('oportunidade.json').then(r=>r.json()).then(d=>{
+fetch('oportunidade.json').then(r=>r.json()).then(res=>{
+  const d=res.data.map(row=>{
+    let obj={};
+    res.columns.forEach((col,idx)=>{obj[col]=row[idx];});
+    return obj;
+  });
   DATA=d; miniKpis(d); charts(d);
   fuse=new Fuse(d,{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true});
   table=new Tabulator('#tbl',{

@@ -115,7 +115,10 @@ def gerar_dados(cur):
         m["lat"] = float(m["lat"]) if m["lat"] is not None else None
         m["lng"] = float(m["lng"]) if m["lng"] is not None else None
         m["dens"] = float(m["dens"]) if m["dens"] is not None else 0
-    D["desertos_mapa"] = [m for m in mapa if m["lat"] and m["lng"]]
+    D["desertos_mapa"] = [
+        [m["nome"], m["uf"], m["pop"], m["nmed"], m["dens"], m["classe"], m["lat"], m["lng"]]
+        for m in mapa if m["lat"] and m["lng"]
+    ]
     D["desertos_top"] = q(cur, """
         SELECT municipio_nome nome, uf, populacao pop, n_medicos nmed, medicos_por_mil_hab dens
         FROM desertos_medicos WHERE classificacao='DESERTO' AND populacao>15000
@@ -149,7 +152,10 @@ def gerar_dados(cur):
         m["lat"] = float(m["lat"]) if m["lat"] is not None else None
         m["lng"] = float(m["lng"]) if m["lng"] is not None else None
         m["dens"] = float(m["dens"]) if m["dens"] is not None else 0
-    D["enf_mapa"] = [m for m in mape if m["lat"] and m["lng"]]
+    D["enf_mapa"] = [
+        [m["nome"], m["uf"], m["pop"], m["nmed"], m["dens"], m["classe"], m["lat"], m["lng"]]
+        for m in mape if m["lat"] and m["lng"]
+    ]
     D["enf_top"] = q(cur, """
         SELECT municipio_nome nome, uf, populacao pop, n_enfermeiros nmed, enfermeiros_por_mil dens
         FROM densidade_enfermagem WHERE classificacao='DESERTO' AND populacao>20000
@@ -177,7 +183,10 @@ def gerar_dados(cur):
         m["lat"] = float(m["lat"]) if m["lat"] is not None else None
         m["lng"] = float(m["lng"]) if m["lng"] is not None else None
         m["idx"] = float(m["idx"]) if m["idx"] is not None else 0
-    D["oport_mapa"] = [m for m in mapo if m["lat"] and m["lng"]]
+    D["oport_mapa"] = [
+        [m["nome"], m["uf"], m["pop"], m["idx"], m["med"], m["cob"], m["lat"], m["lng"]]
+        for m in mapo if m["lat"] and m["lng"]
+    ]
     D["oport_top"] = q(cur, """
         SELECT municipio_nome nome, uf, populacao pop, medicos_por_mil med,
                cobertura_privada_pct cob, pib_per_capita pib, indice_oportunidade idx
@@ -330,8 +339,8 @@ function renderDesertos(tipo){
     document.getElementById('desTbl').innerHTML='<table><tr><th>Classe</th><th class=n>Munic</th><th class=n>Populacao</th><th class=n>'+cfg.unit+'</th></tr>'+cfg.dist.map(d=>`<tr><td>${d.classificacao}</td><td class=n>${fmt(d.n)}</td><td class=n>${fmt(d.pop)}</td><td class=n>${d.dens}</td></tr>`).join('')+'</table>';
     document.getElementById('desTop').innerHTML='<table><tr><th>Municipio</th><th>UF</th><th class=n>Pop</th><th class=n>'+cfg.col.slice(0,3)+'</th><th class=n>/mil</th></tr>'+cfg.top.map(d=>`<tr><td>${d.nome}</td><td>${d.uf}</td><td class=n>${fmt(d.pop)}</td><td class=n>${fmt(d.nmed)}</td><td class=n>${d.dens}</td></tr>`).join('')+'</table>';
     cfg.mapa.forEach(m=>{
-      L.circleMarker([m.lat,m.lng],{radius:m.classe==='DESERTO'?6:4,color:m.classe==='DESERTO'?'#ef5f5f':'#f6a443',fillOpacity:.65,weight:1})
-       .addTo(desLayer).bindPopup(`<b>${m.nome}-${m.uf}</b><br>Pop: ${fmt(m.pop)}<br>${cfg.col}: ${fmt(m.nmed)}<br>Densidade: <b>${m.dens}</b>/mil hab`);
+      L.circleMarker([m[6],m[7]],{radius:m[5]==='DESERTO'?6:4,color:m[5]==='DESERTO'?'#ef5f5f':'#f6a443',fillOpacity:.65,weight:1})
+       .addTo(desLayer).bindPopup(`<b>${m[0]}-${m[1]}</b><br>Pop: ${fmt(m[2])}<br>${cfg.col}: ${fmt(m[3])}<br>Densidade: <b>${m[4]}</b>/mil hab`);
     });
   } else {
     const alta=cfg.dist.find(d=>d.tier==='ALTA')||{n:0,pop:0};
@@ -342,8 +351,8 @@ function renderDesertos(tipo){
     document.getElementById('desTbl').innerHTML='<table><tr><th>Tier</th><th class=n>Munic</th><th class=n>Populacao</th><th class=n>indice</th></tr>'+cfg.dist.map(d=>`<tr><td>${d.tier}</td><td class=n>${fmt(d.n)}</td><td class=n>${fmt(d.pop)}</td><td class=n>${d.idx}</td></tr>`).join('')+'</table>';
     document.getElementById('desTop').innerHTML='<table><tr><th>Municipio</th><th>UF</th><th class=n>Pop</th><th class=n>med/mil</th><th class=n>cob%</th><th class=n>indice</th></tr>'+cfg.top.map(d=>`<tr><td>${d.nome}</td><td>${d.uf}</td><td class=n>${fmt(d.pop)}</td><td class=n>${d.med}</td><td class=n>${d.cob}</td><td class=n>${d.idx}</td></tr>`).join('')+'</table>';
     cfg.mapa.forEach(m=>{
-      L.circleMarker([m.lat,m.lng],{radius:3+m.idx/18,color:'#37d7a6',fillOpacity:.6,weight:1})
-       .addTo(desLayer).bindPopup(`<b>${m.nome}-${m.uf}</b><br>Pop: ${fmt(m.pop)}<br>Medicos: ${m.med}/mil<br>Cobertura privada: ${m.cob}%<br>Indice: <b>${m.idx}</b>`);
+      L.circleMarker([m[6],m[7]],{radius:3+m[3]/18,color:'#37d7a6',fillOpacity:.6,weight:1})
+       .addTo(desLayer).bindPopup(`<b>${m[0]}-${m[1]}</b><br>Pop: ${fmt(m[2])}<br>Medicos: ${m[4]}/mil<br>Cobertura privada: ${m[5]}%<br>Indice: <b>${m[3]}</b>`);
     });
   }
 }

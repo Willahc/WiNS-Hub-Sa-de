@@ -54,12 +54,21 @@ def baixar_decode(tarefa):
                 f.quit()
             except Exception:
                 pass
-            break
+            if os.path.exists(dest) and os.path.getsize(dest) > 0:
+                break
         except error_perm:
             return (uf, ym, 0, {}, "inexistente")
         except Exception as e:
             if tent == 1:
-                return (uf, ym, 0, {}, f"erro download: {e}")
+                # Fallback HTTP mirror
+                try:
+                    import urllib.request
+                    url = f"http://depot.lapren.ens.fr/datasus/SIHSUS/200801_/Dados/{name}"
+                    urllib.request.urlretrieve(url, dest)
+                    if os.path.exists(dest) and os.path.getsize(dest) > 0:
+                        break
+                except Exception as e2:
+                    return (uf, ym, 0, {}, f"erro download FTP+HTTP: {e} | {e2}")
             time.sleep(2)
     # decode
     dbf = dest[:-4] + ".dbf"

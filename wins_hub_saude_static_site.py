@@ -129,10 +129,17 @@ def gerar_dados():
     """
     with psycopg2.connect(DSN, cursor_factory=RealDictCursor) as c, c.cursor() as cur:
         cur.execute(sql)
-        rows = [{k: _jsonable(v) for k, v in r.items()} for r in cur.fetchall()]
+        raw_rows = cur.fetchall()
+        rows = []
+        for r in raw_rows:
+            rows.append([_jsonable(r[col]) for col in COLS])
     path = os.path.join(DOCS, "oportunidade.json")
+    compact_data = {
+        "columns": COLS,
+        "data": rows
+    }
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(rows, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(compact_data, f, ensure_ascii=False, separators=(",", ":"))
     print(f"  oportunidade.json: {len(rows)} municipios ({os.path.getsize(path)/1024:.0f} KB)")
     return len(rows)
 
@@ -274,7 +281,12 @@ function exportPDF(){
     styles:{fontSize:7,cellPadding:2},headStyles:{fillColor:[31,28,48]},alternateRowStyles:{fillColor:[244,246,250]}});
   doc.save('relatorio_oportunidade_wins_hub_saude.pdf');
 }
-fetch('oportunidade.json').then(r=>r.json()).then(d=>{
+fetch('oportunidade.json').then(r=>r.json()).then(res=>{
+  const d=res.data.map(row=>{
+    let obj={};
+    res.columns.forEach((col,idx)=>{obj[col]=row[idx];});
+    return obj;
+  });
   DATA=d; miniKpis(d); charts(d);
   fuse=new Fuse(d,{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true});
   table=new Tabulator('#tbl',{
@@ -434,8 +446,12 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{att
 Promise.all([
   fetch('oportunidade.json').then(r=>r.json()),
   fetch('municipios_br.topojson').then(r=>r.json())
-]).then(([dados,topo])=>{
-  dados.forEach(r=>DMAP.set(String(r.municipio_cod),r));
+]).then(([res,topo])=>{
+  res.data.forEach(row=>{
+    let r={};
+    res.columns.forEach((col,idx)=>{r[col]=row[idx];});
+    DMAP.set(String(r.municipio_cod),r);
+  });
   const obj=topo.objects[Object.keys(topo.objects)[0]];
   const geo=topojson.feature(topo,obj);
   layer=L.geoJSON(geo,{style:f=>styleFor(f.properties),
