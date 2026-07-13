@@ -184,6 +184,10 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
 .kpi-mini{background:var(--card2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
 .kpi-mini .v{font-size:20px;font-weight:700}.kpi-mini .l{color:var(--mut);font-size:12px}
 .tabulator{background:var(--card);border:1px solid var(--bd);border-radius:12px;font-size:13px}
+.tabulator-row{cursor:pointer}
+.tabulator-row:hover{background-color:var(--card2) !important}
+.modal-grid-tbl{width:100%;border-collapse:collapse}
+.modal-grid-tbl td{border:0;padding:6px 0;font-size:13px}
 .opportunity-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid var(--bd);padding-bottom:16px}
 .tab-btn{background:var(--card2);border:1px solid var(--bd);color:var(--mut);padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;transition:0.2s}
 .tab-btn:hover{background:var(--card);color:var(--txt)}
@@ -230,6 +234,57 @@ OPORT_PAGE = """<!doctype html><html lang=pt-BR><head><meta charset=utf-8>
   <span class=pill id=count></span>
 </div>
 <div id=tbl></div>
+
+<!-- Modal de Detalhes do Município -->
+<div id="muni-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(11,18,32,0.85); z-index:10000; justify-content:center; align-items:center; backdrop-filter:blur(5px)">
+  <div class="card" style="width:90%; max-width:650px; background:var(--card); border:2px solid var(--bd); border-radius:16px; padding:24px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5); max-height:90vh; overflow-y:auto">
+    <button onclick="closeModal()" style="position:absolute; top:16px; right:16px; background:none; border:0; color:var(--mut); font-size:24px; cursor:pointer; line-height:1">&times;</button>
+    <h2 id="modal-title" style="margin-top:0; border-left:4px solid var(--acc2); padding-left:10px; font-size:20px">Nome do Município</h2>
+    <p class="sub" id="modal-subtitle">UF | População: 100.000</p>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+      <div>
+        <h3 style="color:var(--acc2); margin:0 0 8px; font-size:14px; border-bottom:1px solid var(--bd); padding-bottom:4px">Mercado e Índices</h3>
+        <table class="modal-grid-tbl">
+          <tr><td style="color:var(--mut)">Índice Oportunidade:</td><td id="m-idx" style="font-weight:bold; text-align:right">85.0</td></tr>
+          <tr><td style="color:var(--mut)">Tier:</td><td id="m-tier" style="font-weight:bold; text-align:right">ALTA</td></tr>
+          <tr><td style="color:var(--mut)">Sweet Spot:</td><td id="m-sweet" style="text-align:right">Sim</td></tr>
+          <tr><td style="color:var(--mut)">PIB per capita:</td><td id="m-pib" style="text-align:right">R$ 45.000</td></tr>
+          <tr><td style="color:var(--mut)">Cobertura Privada:</td><td id="m-cob" style="text-align:right">32%</td></tr>
+        </table>
+      </div>
+      
+      <div>
+        <h3 style="color:var(--acc); margin:0 0 8px; font-size:14px; border-bottom:1px solid var(--bd); padding-bottom:4px">Infraestrutura e Oferta</h3>
+        <table class="modal-grid-tbl">
+          <tr><td style="color:var(--mut)">Médicos / mil hab:</td><td id="m-med" style="text-align:right">1.25</td></tr>
+          <tr><td style="color:var(--mut)">Enfermeiros / mil:</td><td id="m-enf" style="text-align:right">1.80</td></tr>
+          <tr><td style="color:var(--mut)">Tomógrafo:</td><td id="m-tomo" style="text-align:right">Sim</td></tr>
+          <tr><td style="color:var(--mut)">Leitos SUS / mil:</td><td id="m-leitos" style="text-align:right">2.1</td></tr>
+          <tr><td style="color:var(--mut)">Internações / mil:</td><td id="m-intern" style="text-align:right">75.3</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:20px; background:var(--card2); padding:14px; border-radius:10px; border:1px solid var(--bd)">
+      <h3 style="margin:0 0 8px; font-size:13px; color:var(--txt)">Procedimentos de Alta Complexidade (APAC / mil hab)</h3>
+      <div style="display:flex; justify-content:space-between; font-size:13px">
+        <span>Oncologia: <b id="m-onco">0.5</b></span>
+        <span>Diálise: <b id="m-dialise">1.2</b></span>
+        <span>Acesso Leitos: <b id="m-acesso">2.4</b></span>
+      </div>
+    </div>
+    
+    <div style="margin-top:16px; background:rgba(239,95,95,0.06); padding:14px; border-radius:10px; border:1px solid rgba(239,95,95,0.2)">
+      <h3 style="margin:0 0 8px; font-size:13px; color:var(--red)">Indicadores de Mortalidade e Saúde</h3>
+      <div style="display:flex; justify-content:space-between; font-size:13px">
+        <span>Óbitos Evitáveis: <b id="m-evit" style="color:var(--red)">12.5</b> /mil hab</span>
+        <span>Mortalidade Infantil: <b id="m-inf" style="color:var(--red)">14.2</b> /mil nasc.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>
 <script>
 const ptInt=c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0});};
@@ -237,21 +292,16 @@ const ptDec=d=>c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleStr
 function tierFmt(c){const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}
 let table, DATA=[], fuse=null, chTier=null, chUf=null, chScatter=null;
 const cols=[
- {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:150,widthGrow:3},
- {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:80},
- {title:"Pop.",field:"populacao",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
- {title:"Indice",field:"indice_oportunidade",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:90},
+ {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:160,widthGrow:3},
+ {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:70},
+ {title:"População",field:"populacao",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
+ {title:"Índice",field:"indice_oportunidade",sorter:"number",formatter:"progress",formatterParams:{color:["#ef5f5f", "#f6a443", "#37d7a6"], min:0, max:100, legend:true},width:115},
  {title:"Tier",field:"tier",headerFilter:"list",headerFilterParams:{values:["","ALTA","MEDIA","BAIXA"]},formatter:tierFmt,hozAlign:"center",width:90},
- {title:"Med/mil",field:"medicos_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
- {title:"Enf/mil",field:"enfermeiros_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
+ {title:"Med/mil",field:"medicos_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90},
+ {title:"Enf/mil",field:"enfermeiros_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90},
  {title:"Cob.%",field:"cobertura_privada_pct",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:90},
- {title:"Intern/mil",field:"internacoes_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:100},
- {title:"Leitos SUS/mil",field:"leitos_sus_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:115},
- {title:"Mort.inf/mil",field:"mortalidade_infantil",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:105},
- {title:"Evit/mil",field:"evitaveis_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:95},
- {title:"Acesso leitos",field:"acesso_idx",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:110},
- {title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
- {title:"Tomografo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:100,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
+ {title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:95},
+ {title:"Tomógrafo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:95,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
  {title:"Sweet",field:"sweet_spot",formatter:"tickCross",hozAlign:"center",width:80,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
 ];
 function miniKpis(d){
@@ -310,6 +360,9 @@ fetch('oportunidade.json').then(r=>r.json()).then(res=>{
     pagination:true, paginationSize:50, paginationSizeSelector:[25,50,100,250],
     movableColumns:true, columnDefaults:{headerTooltip:true},
     initialSort:[{column:'indice_oportunidade',dir:'desc'}], columns:cols,
+    rowClick:function(e, row){
+      openModal(row.getData());
+    }
   });
   const upd=()=>{document.getElementById('count').textContent=table.getDataCount('active')+' municipios';};
   table.on('tableBuilt',upd); table.on('dataFiltered',upd);
@@ -380,6 +433,41 @@ function filterTab(mode) {
       {field: "cobertura_privada_pct", type: ">", value: 30.0},
       {field: "tem_tomografo", type: "==", value: false}
     ]);
+  }
+}
+
+function openModal(data) {
+  document.getElementById('modal-title').textContent = data.municipio_nome;
+  document.getElementById('modal-subtitle').textContent = data.uf + ' | População: ' + fmt(data.populacao);
+  document.getElementById('m-idx').textContent = fmt(data.indice_oportunidade);
+  document.getElementById('m-tier').textContent = data.tier;
+  document.getElementById('m-tier').className = 'tier-' + data.tier;
+  document.getElementById('m-sweet').textContent = data.sweet_spot ? 'Sim 🌟' : 'Não';
+  document.getElementById('m-pib').textContent = data.pib_per_capita != null ? 'R$ ' + fmt(data.pib_per_capita) : '-';
+  document.getElementById('m-cob').textContent = data.cobertura_privada_pct != null ? fmt(data.cobertura_privada_pct) + '%' : '-';
+  document.getElementById('m-med').textContent = data.medicos_por_mil != null ? fmt(data.medicos_por_mil) : '-';
+  document.getElementById('m-enf').textContent = data.enfermeiros_por_mil != null ? fmt(data.enfermeiros_por_mil) : '-';
+  document.getElementById('m-tomo').textContent = data.tem_tomografo ? 'Sim ✅' : 'Não ❌';
+  document.getElementById('m-leitos').textContent = data.leitos_sus_por_mil != null ? fmt(data.leitos_sus_por_mil) : '-';
+  document.getElementById('m-intern').textContent = data.internacoes_por_mil != null ? fmt(data.internacoes_por_mil) : '-';
+  document.getElementById('m-onco').textContent = data.apac_onco_por_mil != null ? fmt(data.apac_onco_por_mil) : '-';
+  document.getElementById('m-dialise').textContent = data.apac_dialise_por_mil != null ? fmt(data.apac_dialise_por_mil) : '-';
+  document.getElementById('m-acesso').textContent = data.acesso_idx != null ? fmt(data.acesso_idx) : '-';
+  document.getElementById('m-evit').textContent = data.evitaveis_por_mil != null ? fmt(data.evitaveis_por_mil) : '-';
+  document.getElementById('m-inf').textContent = data.mortalidade_infantil != null ? fmt(data.mortalidade_infantil) : '-';
+  
+  document.getElementById('muni-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('muni-modal').style.display = 'none';
+}
+
+// Fechar modal ao clicar fora
+window.onclick = function(event) {
+  const modal = document.getElementById('muni-modal');
+  if (event.target == modal) {
+    modal.style.display = 'none';
   }
 }
 </script>
