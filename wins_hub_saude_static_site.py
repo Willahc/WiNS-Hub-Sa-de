@@ -31,7 +31,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 # Reaproveita o template e o conteudo de "Para quem vender" do app (fonte unica)
-from wins_hub_app import PAGE, vender_body
+from wins_hub_app import PAGE, oportunidades_body
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env.saude"))
@@ -65,7 +65,7 @@ NAV = """
   <a href="index.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Dashboard</a>
   <a href="oportunidade.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Indice de Oportunidade</a>
   <a href="mapa.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Mapa</a>
-  <a href="vender.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Para quem vender</a>
+  <a href="oportunidades.html" style="color:#cfe;text-decoration:none;padding:6px 12px;border-radius:8px">Oportunidades</a>
 </nav>
 """
 
@@ -77,8 +77,6 @@ COLS = ["municipio_cod", "municipio_nome", "uf", "populacao", "medicos_por_mil",
         "indice_oportunidade", "tier", "sweet_spot"]
 
 # Reaproveita o bloco <style> do template do app (fonte unica de estilo)
-STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
-
 STYLE = PAGE.split("<style>", 1)[1].split("</style>", 1)[0]
 
 OPORTUNIDADES_METADATA = [
@@ -118,7 +116,7 @@ OPORTUNIDADES_METADATA = [
         "emoji": "🧑‍⚕️",
         "badge_text": "Oportunidade Geral",
         "badge_class": "badge-general",
-        "why": "Hospitais gerais ativos, com alto volume de internações anuais, que se localizam em regiões com escassez severa de profissionais de enfermagem (< 1.0/mil hab) enfrentam altos custos com horas extras, fadiga de pessoal e turnover elevado. Empresas de recrutamento especializado, capacitação e outsourcing encontram nestes estabelecimentos parceiros corporativos com alta urgência de contratação.",
+        "why": "Hospitais gerais activos, com alto volume de internações anuais, que se localizam em regiões com escassez severa de profissionais de enfermagem (< 1.0/mil hab) enfrentam altos custos com horas extras, fadiga de pessoal e turnover elevado. Empresas de recrutamento especializado, capacitação e outsourcing encontram nestes estabelecimentos parceiros corporativos com alta urgência de contratação.",
         "where": "Municípios com atividade de internação significativa (>50 internações por mil habitantes/ano) e densidade de enfermeiros inferior a 1.0 por mil habitantes.",
         "js_filter": "row.enfermeiros_por_mil < 1.0 && row.internacoes_por_mil > 50"
     },
@@ -161,6 +159,116 @@ OPORTUNIDADES_METADATA = [
         "why": "Identificação de praças com população de médio e grande porte, com alta cobertura de convênios médicos premium, mas que possuem déficit de equipamentos de imagem de última geração. Permite à bandeira Sírio Diagnósticos abrir laboratórios próprios, postos de coleta ou firmar parcerias preferenciais locais de alto ticket.",
         "where": "Cidades populosas com população superior a 40.000 habitantes, mercado premium forte (>30% de planos de saúde) e ausência de tomógrafos de alta capacidade cadastrados no CNES.",
         "js_filter": "row.populacao > 40000 && row.cobertura_privada_pct > 30 && row.tem_tomografo === false"
+    },
+    {
+        "slug": "oportunidade-operadoras",
+        "title": "Operadoras e Seguradoras B2B",
+        "emoji": "🏢",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Operadoras de saúde e seguradoras (como Hapvida, Bradesco, Porto) buscam regiões com forte PIB per capita mas com baixa cobertura de planos de saúde para expandir suas redes credenciadas e vender planos coletivos. Identificar essas praças evita o investimento em regiões saturadas e acelera a captação de clientes corporativos locais.",
+        "where": "Municípios com PIB per capita superior a R$ 30.000 e índice de cobertura privada de saúde inferior a 15.0%.",
+        "js_filter": "row.cobertura_privada_pct < 15 && row.pib_per_capita > 30000"
+    },
+    {
+        "slug": "oportunidade-redes",
+        "title": "Redes de Clínicas e Hospitais",
+        "emoji": "🏥",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Grandes redes de saúde (como Dr. Consulta, Fleury, Dasa, Rede D'Or) utilizam estudos de Site Selection baseados em demanda assistencial reprimida. Municípios populosos com escassez de leitos gerais indicam praças ideias para novas unidades de atendimento ambulatorial ou hospitalar.",
+        "where": "Cidades populosas com mais de 50.000 habitantes e taxa de leitos hospitalares SUS inferior a 1.5 por mil habitantes.",
+        "js_filter": "row.populacao > 50000 && row.leitos_sus_por_mil < 1.5"
+    },
+    {
+        "slug": "oportunidade-farmacias",
+        "title": "Expansão de Redes de Farmácias",
+        "emoji": "💊",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Grandes redes varejistas de medicamentos (RaiaDrogasil, Pague Menos) estão convertendo suas lojas em hubs de saúde básica (consultórios farmacêuticos). Mapear municípios de porte médio com escassez geral de médicos e alto PIB ajuda a direcionar a abertura de lojas com forte apelo de atendimento primário local.",
+        "where": "Municípios com população superior a 30.000 habitantes e densidade geral de médicos inferior a 0.8 por mil habitantes.",
+        "js_filter": "row.populacao > 30000 && row.medicos_por_mil < 0.8"
+    },
+    {
+        "slug": "oportunidade-fundos",
+        "title": "Fundos VC/PE e Investidores",
+        "emoji": "📈",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Fundos de Venture Capital e Private Equity focados em saúde utilizam dados de atratividade territorial para validar teses de investimento de suas investidas (healthtechs e redes de clínicas). Cidades classificadas como Sweet Spots possuem o balanço ideal de demanda reprimida, PIB forte e crescimento de beneficiários.",
+        "where": "Municípios classificados formalmente como Sweet Spot de investimento na base de dados.",
+        "js_filter": "row.sweet_spot === true"
+    },
+    {
+        "slug": "oportunidade-industria",
+        "title": "Indústria e Distribuidoras Farma",
+        "emoji": "🏭",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "A indústria farmacêutica (EMS, Hypera) e distribuidoras planejam seus territórios comerciais de representantes médicos com base na atividade de internação e consumo local de medicamentos. Municípios com altos índices de internações hospitalares demandam maior atenção comercial.",
+        "where": "Municípios com índice de internações hospitalares anualizado superior a 60 por mil habitantes.",
+        "js_filter": "row.internacoes_por_mil > 60"
+    },
+    {
+        "slug": "oportunidade-consultorias",
+        "title": "Consultorias e FIIs Imobiliários",
+        "emoji": "💼",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Fundos Imobiliários (FIIs) de hospitais e consultorias estratégicas (McKinsey, BCG) analisam o potencial de sustentabilidade de longo prazo de ativos físicos de saúde. Cidades populosas de alta renda fornecem o fluxo de caixa estável necessário para sustentar operações de Real Estate em saúde.",
+        "where": "Municípios polo com população superior a 80.000 habitantes e PIB per capita superior a R$ 45.000.",
+        "js_filter": "row.populacao > 80000 && row.pib_per_capita > 45000"
+    },
+    {
+        "slug": "oportunidade-publico",
+        "title": "Políticas Públicas e ONGs",
+        "emoji": "🏛️",
+        "badge_text": "Comprador B2B",
+        "badge_class": "badge-general",
+        "why": "Secretarias estaduais de saúde e organizações multilaterais buscam alocar recursos e políticas públicas de forma otimizada. Identificar municípios com taxas alarmantes de mortalidade evitável ou mortalidade infantil aponta onde as ações de atenção básica são mais urgentes.",
+        "where": "Cidades com óbitos por causas evitáveis superiores a 10 por mil habitantes ou mortalidade infantil superior a 15 por mil nascimentos.",
+        "js_filter": "row.evitaveis_por_mil > 10 || row.mortalidade_infantil > 15"
+    },
+    {
+        "slug": "oportunidade-sales-intel",
+        "title": "Sales Intelligence B2B",
+        "emoji": "💻",
+        "badge_text": "Enriquecimento",
+        "badge_class": "badge-general",
+        "why": "Plataformas de inteligência de vendas (como Lusha, Apollo) enriquecem suas bases corporativas com dados de contato direto de proprietários e sócios (QSA) obtidos de forma estruturada. Clínicas e hospitais privados em praças de alto interesse são leads quentes.",
+        "where": "Estabelecimentos de saúde privados em municípios Sweet Spot com decisor cadastrado.",
+        "js_filter": "row.sweet_spot === true"
+    },
+    {
+        "slug": "oportunidade-fornecedores",
+        "title": "Fornecedores e Material Médico",
+        "emoji": "🛒",
+        "badge_text": "Enriquecimento",
+        "badge_class": "badge-general",
+        "why": "Fabricantes de equipamentos cirúrgicos e insumos médicos descartáveis prosperam ao vender para clínicas privadas ativas em mercados de alto PIB e alta cobertura de convênios. O acesso ao decisor nestas praças otimiza o pipeline comercial outbound.",
+        "where": "Municípios com PIB per capita superior a R$ 35.000 e cobertura de saúde privada de operadoras superior a 20.0%.",
+        "js_filter": "row.pib_per_capita > 35000 && row.cobertura_privada_pct > 20"
+    },
+    {
+        "slug": "oportunidade-software-gestao",
+        "title": "Software de Gestão e Prontuários",
+        "emoji": "🖥️",
+        "badge_text": "Enriquecimento",
+        "badge_class": "badge-general",
+        "why": "SaaS de prontuário eletrônico e ERP (iClinic, Pixeon) vendem para clínicas médicas privadas de médio porte. Praças populosas e com planos de saúde consolidados concentram a maior fatia de clínicas aptas a pagar por digitalização de prontuários.",
+        "where": "Municípios com mais de 20.000 habitantes e cobertura de saúde privada superior a 15.0%.",
+        "js_filter": "row.populacao > 20000 && row.cobertura_privada_pct > 15"
+    },
+    {
+        "slug": "oportunidade-fintechs",
+        "title": "Fintechs e Crédito da Saúde",
+        "emoji": "💳",
+        "badge_text": "Enriquecimento",
+        "badge_class": "badge-general",
+        "why": "Fintechs de antecipação de recebíveis médicos (de planos de saúde/SUS) e crédito para investimentos em capex focam em clínicas privadas estabelecidas em regiões prósperas. A saúde financeira destas clínicas garante baixos índices de inadimplência.",
+        "where": "Estabelecimentos em municípios ricos com PIB per capita superior a R$ 40.000.",
+        "js_filter": "row.pib_per_capita > 40000"
     }
 ]
 
@@ -787,12 +895,12 @@ def gerar_oportunidade():
     print(f"  oportunidade.html: {len(html)/1024:.0f} KB (Tabulator+Chart.js+Fuse+jsPDF)")
 
 
-def gerar_vender():
-    html = render("Para quem vender", vender_body())
-    html = inject_head(html, "Para quem vender", "vender.html")
-    with open(os.path.join(DOCS, "vender.html"), "w", encoding="utf-8") as f:
+def gerar_oportunidades_main():
+    html = render("Oportunidades", oportunidades_body())
+    html = inject_head(html, "Oportunidades de Negócios B2B", "oportunidades.html")
+    with open(os.path.join(DOCS, "oportunidades.html"), "w", encoding="utf-8") as f:
         f.write(minify(html))
-    print(f"  vender.html: {len(html)/1024:.0f} KB")
+    print(f"  oportunidades.html: {len(html)/1024:.0f} KB")
 
 
 MALHA_URL = ("https://servicodados.ibge.gov.br/api/v4/malhas/paises/BR"
@@ -942,7 +1050,7 @@ def gerar_mapa():
     print(f"  mapa.html: {len(html)/1024:.0f} KB (Leaflet coropletico)")
 
 
-PAGINAS = ["index.html", "oportunidade.html", "mapa.html", "vender.html"] + [f"{o['slug']}.html" for o in OPORTUNIDADES_METADATA]
+PAGINAS = ["index.html", "oportunidade.html", "mapa.html", "oportunidades.html"] + [f"{o['slug']}.html" for o in OPORTUNIDADES_METADATA]
 
 
 def gerar_oportunidades_detalhadas():
@@ -1006,7 +1114,7 @@ if __name__ == "__main__":
     gerar_index()
     gerar_oportunidade()
     gerar_mapa()
-    gerar_vender()
+    gerar_oportunidades_main()
     gerar_oportunidades_detalhadas()
     gerar_seo()
     print("OK. Publique com: git add -A && git commit -m 'site' && git push")

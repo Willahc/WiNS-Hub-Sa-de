@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} - WiNS Hub Saude</title>
+  <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/css/tabulator_flathead.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    {style}
+    .grid-desc { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 768px) { .grid-desc { grid-template-columns: 1fr; } }
+    .oport-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 12px; }
+    .badge-sirio { background: rgba(255,166,87,0.15); color: #ffa657; border: 1px solid #ffa657; }
+    .badge-general { background: rgba(55,215,166,0.15); color: #37d7a6; border: 1px solid #37d7a6; }
+    .desc-card { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; }
+    .desc-card h3 { margin-top: 0; color: var(--acc2); border-bottom: 1px solid var(--bd); padding-bottom: 8px; font-size: 15px; }
+    .desc-card p { font-size: 13.5px; color: var(--mut); margin-bottom: 0; line-height: 1.6; }
+  </style>
+<link rel="icon" href="wins-logo.png">
+<meta name="description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Indústria e Distribuidoras Farma - WiNS Hub Saude">
+<meta property="og:description" content="Inteligencia territorial de saude no Brasil: indice de oportunidade por municipio, carencia assistencial, mercado pagante e infraestrutura.">
+<meta property="og:image" content="https://willahc.github.io/WiNS-Hub-Sa-de/wins-logo.png">
+<meta property="og:url" content="https://willahc.github.io/WiNS-Hub-Sa-de/oportunidade-industria.html">
+<meta name="twitter:card" content="summary_large_image">
+<script data-goatcounter="https://william.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+  {nav}
+  <div class="wrap">
+    <a href="vender.html" style="text-decoration:none; color:var(--acc2); font-size:13px; font-weight:600; display:inline-block; margin-bottom:12px">&larr; Voltar para Central Comercial</a>
+    
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; flex-wrap:wrap; gap:12px">
+      <div>
+        <span class="oport-badge {badge_class}">{badge_text}</span>
+        <h1 style="margin:0; font-size:26px">{emoji} {title}</h1>
+        <p class="sub" style="margin:4px 0 0 0">Tese de negocio, analise territorial e leads estruturados para prospecao B2B.</p>
+      </div>
+      <div class="kpi-mini"><div class="v" id="count-muni">-</div><div class="l">Municipios Mapeados</div></div>
+    </div>
+    
+    <div class="grid-desc">
+      <div class="desc-card">
+        <h3>💡 Por que e uma Oportunidade comercial?</h3>
+        <p>{why}</p>
+        <h3 style="margin-top:20px; color:var(--acc)">📍 Onde se aplica (Criterios de Filtro)</h3>
+        <p>{where}</p>
+      </div>
+      <div class="desc-card" style="display:flex; flex-direction:column; align-items:stretch">
+        <h3>📊 Top 7 Estados com maior volume de leads</h3>
+        <div style="flex-grow:1; min-height:180px; position:relative">
+          <canvas id="state-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <h2>🔍 Lista de Oportunidades e Leads Corporativos Mapeados</h2>
+    <div class="toolbar">
+      <input id="search" placeholder="Buscar municipio..." style="min-width:260px">
+      <button class="alt" onclick="table.download('csv','leads_{slug}.csv',{bom:true})">Exportar CSV</button>
+      <button class="alt" onclick="table.download('xlsx','leads_{slug}.xlsx',{sheetName:'Leads'})">Exportar Excel</button>
+      <span class="pill" id="table-count">Carregando...</span>
+    </div>
+    <div id="tbl"></div>
+  </div>
+  
+  {modal}
+  
+  <script>
+    const ptInt=c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0});};
+    const ptDec=d=>c=>{const v=c.getValue();return v==null?'-':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});};
+    function tierFmt(c){const v=c.getValue();const col=v==='ALTA'?'#37d7a6':v==='MEDIA'?'#f6c453':'#8aa0c0';const el=c.getElement();el.style.color=col;el.style.fontWeight=600;return v;}
+    function fmt(n){return n==null?'-':Number(n).toLocaleString('pt-BR');}
+    
+    let table, DATA=[], fuse=null;
+    const cols=[
+      {title:"Municipio",field:"municipio_nome",headerFilter:"input",minWidth:160,widthGrow:3},
+      {title:"UF",field:"uf",headerFilter:"list",headerFilterParams:{valuesLookup:true,clearable:true},hozAlign:"center",width:70},
+      {title:"Populacao",field:"populacao",sorter:"number",hozAlign:"right",formatter:ptInt,width:100},
+      {title:"Indice",field:"indice_oportunidade",sorter:"number",formatter:"progress",formatterParams:{color:["#ef5f5f", "#f6a443", "#37d7a6"], min:0, max:100, legend:true},width:115},
+      {title:"Tier",field:"tier",headerFilter:"list",headerFilterParams:{values:["","ALTA","MEDIA","BAIXA"]},formatter:tierFmt,hozAlign:"center",width:90},
+      {title:"Med/mil",field:"medicos_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90},
+      {title:"Enf/mil",field:"enfermeiros_por_mil",sorter:"number",hozAlign:"right",formatter:ptDec(2),width:90},
+      {title:"Cob.%",field:"cobertura_privada_pct",sorter:"number",hozAlign:"right",formatter:ptDec(1),width:90},
+      {title:"PIB pc",field:"pib_per_capita",sorter:"number",hozAlign:"right",formatter:ptInt,width:95},
+      {title:"Tomografo",field:"tem_tomografo",formatter:"tickCross",hozAlign:"center",width:95,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
+      {title:"Sweet",field:"sweet_spot",formatter:"tickCross",hozAlign:"center",width:80,headerFilter:"tickCross",headerFilterParams:{tristate:true}},
+    ];
+    
+    fetch('oportunidade.json').then(r=>r.json()).then(res=>{
+      const allData=res.data.map(row=>{
+        let obj={};
+        res.columns.forEach((col,idx)=>{obj[col]=row[idx];});
+        return obj;
+      });
+      
+      const filtered = allData.filter(row => {
+        return row.internacoes_por_mil > 60;
+      });
+      
+      DATA = filtered;
+      document.getElementById('count-muni').textContent = fmt(filtered.length);
+      document.getElementById('table-count').textContent = fmt(filtered.length) + ' municipios';
+      
+      renderChart(filtered);
+      
+      fuse=new Fuse(filtered,{keys:['municipio_nome'],threshold:0.34,ignoreLocation:true});
+      
+      table=new Tabulator('#tbl',{
+        data:filtered, layout:'fitColumns', responsiveLayout:'collapse', height:'550px',
+        pagination:true, paginationSize:50, paginationSizeSelector:[25,50,100,250],
+        movableColumns:true, columnDefaults:{headerTooltip:true},
+        initialSort:[{column:'indice_oportunidade',dir:'desc'}], columns:cols,
+        rowClick:function(e, row){
+          openModal(row.getData());
+        }
+      });
+      
+      const upd=()=>{document.getElementById('table-count').textContent=table.getDataCount('active')+' municipios';};
+      table.on('tableBuilt',upd); table.on('dataFiltered',upd);
+      
+      document.getElementById('search').addEventListener('input',e=>{
+        const q=e.target.value.trim();
+        if(!q){table.clearFilter(true);return;}
+        const hits=new Set(fuse.search(q).map(h=>h.item.municipio_cod));
+        table.setFilter(row=>hits.has(row.municipio_cod));
+      });
+    }).catch(e=>{
+      document.getElementById('tbl').textContent='Falha ao carregar dados: '+e;
+    });
+    
+    function renderChart(data) {
+      const byUf = {};
+      data.forEach(r => { byUf[r.uf] = (byUf[r.uf] || 0) + 1; });
+      const sorted = Object.entries(byUf).sort((a,b)=>b[1]-a[1]).slice(0, 7);
+      
+      const labels = sorted.map(x => x[0]);
+      const values = sorted.map(x => x[1]);
+      
+      Chart.defaults.color='#8aa0c0';
+      new Chart(document.getElementById('state-chart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: '#37d7a6',
+            borderColor: '#37d7a6',
+            borderRadius: 4,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+          },
+          scales: {
+            x: { grid: { color: '#22304d' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
