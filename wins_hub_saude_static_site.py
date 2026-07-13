@@ -649,11 +649,11 @@ OPORT_DETAIL_PAGE = """<!doctype html>
         const payback = ebitda > 0 ? capex / ebitda : 0;
         
         results.innerHTML = `
-          <div><div style="color:var(--mut)">Pacientes Anuais:</div><b style="font-size:16px; color:#ffa657">{{Math.round(pacientes)}}</b></div>
-          <div><div style="color:var(--mut)">Faturamento/ano:</div><b style="font-size:16px; color:var(--acc)">R$ {{((receita/1000000)).toFixed(2)}}M</b></div>
-          <div><div style="color:var(--mut)">EBITDA/ano (25%):</div><b style="font-size:16px; color:var(--acc)">R$ {{((ebitda/1000000)).toFixed(2)}}M</b></div>
-          <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">{{roi.toFixed(1)}}%</b></div>
-          <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">{{payback > 0 ? payback.toFixed(1) + ' anos' : '-'}}</b></div>
+          <div><div style="color:var(--mut)">Pacientes Anuais:</div><b style="font-size:16px; color:#ffa657">${{Math.round(pacientes)}}</b></div>
+          <div><div style="color:var(--mut)">Faturamento/ano:</div><b style="font-size:16px; color:var(--acc)">R$ ${{((receita/1000000)).toFixed(2)}}M</b></div>
+          <div><div style="color:var(--mut)">EBITDA/ano (25%):</div><b style="font-size:16px; color:var(--acc)">R$ ${{((ebitda/1000000)).toFixed(2)}}M</b></div>
+          <div><div style="color:var(--mut)">ROI Anual:</div><b style="font-size:16px; color:#ffa657">${{roi.toFixed(1)}}%</b></div>
+          <div><div style="color:var(--mut)">Tempo Retorno:</div><b style="font-size:16px; color:#ffa657">${{payback > 0 ? payback.toFixed(1) + ' anos' : '-'}}</b></div>
         `;
       }} else if (SLUG === "oportunidade-sirio-corporativa") {{
         const mensal = Number(document.getElementById("val-mensal").value);
